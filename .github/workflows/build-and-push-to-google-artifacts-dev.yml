@@ -45,7 +45,7 @@ jobs:
 
       - name: Configure Docker to use gcloud credentials
         run: |
-          gcloud auth configure-docker ${{ vars.ARTIFACTS_REGISTRY }}
+          gcloud auth configure-docker africa-south1-docker.pkg.dev --quiet
 
       - name: Build, tag, and push image to Google Artifacts repository
         run: |
