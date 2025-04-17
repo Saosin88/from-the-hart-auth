@@ -8,6 +8,13 @@ resource "google_cloud_run_service" "from_the_hart_auth" {
   name     = "from-the-hart-auth"
   location = "africa-south1"
 
+   metadata {
+    annotations = {
+      "run.googleapis.com/ingress"        = "all"
+      "run.googleapis.com/ingress-status" = "all"
+    }
+  }
+
   template {
     spec {
       containers {
@@ -43,8 +50,6 @@ resource "google_cloud_run_service" "from_the_hart_auth" {
 
     metadata {
       annotations = {
-        "run.googleapis.com/ingress"               = "all"
-        "run.googleapis.com/ingress-status"        = "all"
         "autoscaling.knative.dev/minScale"         = "0"
         "autoscaling.knative.dev/maxScale"         = "2"
         "run.googleapis.com/execution-environment" = "gen2"
