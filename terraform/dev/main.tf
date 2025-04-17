@@ -4,6 +4,7 @@ variable "auth_image_uri" {
 }
 
 resource "google_cloud_run_service" "from_the_hart_auth" {
+  project = data.terraform_remote_state.shared.outputs.tech_dev_project_id
   name     = "from-the-hart-auth"
   location = "africa-south1"
 
