@@ -1,4 +1,4 @@
-name: Build and Push Docker Image to ECR
+name: Build and Push Docker Image to Google Artifacts Registry and Deploy to Dev Environment
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-push-to-ecr-deploy-with-terraform:
+  build-and-push-to-google-artifacts-registry:
     runs-on: ubuntu-latest
     environment: dev
 
