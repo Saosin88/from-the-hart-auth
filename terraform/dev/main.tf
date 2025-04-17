@@ -10,7 +10,7 @@ resource "google_cloud_run_service" "from_the_hart_auth" {
   template {
     spec {
       containers {
-        image = auth_image_uri
+        image = var.auth_image_uri
 
         ports {
           container_port = 8080
