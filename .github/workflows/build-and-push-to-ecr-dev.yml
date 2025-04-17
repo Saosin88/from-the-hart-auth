@@ -1,0 +1,75 @@
+name: Build and Push Docker Image to ECR
+
+on:
+  push:
+    branches: dev
+  workflow_dispatch:
+
+jobs:
+  build-and-push-to-ecr-deploy-with-terraform:
+    runs-on: ubuntu-latest
+    environment: dev
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test -- --ci --reporters=default --reporters=jest-junit
+
+      - name: Test Report
+        uses: dorny/test-reporter@v2
+        if: success() || failure()
+        with:
+          name: Jest Tests
+          path: junit.xml
+          reporter: jest-junit
+
+      - name: Google Auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker to use gcloud credentials
+        run: |
+          gcloud auth configure-docker ${{ vars.ARTIFACTS_REGISTRY }}
+
+      - name: Build, tag, and push image to Google Artifacts repository
+        run: |
+
+          docker build -f Dockerfile \
+            --build-arg NODE_ENV=dev \
+            --build-arg LOG_LEVEL=debug \
+            --build-arg FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }} \
+            --build-arg FIREBASE_WEB_API_KEY=${{ secrets.FIREBASE_WEB_API_KEY }} \
+            --build-arg FIREBASE_AUTH_DOMAIN=${{ secrets.FIREBASE_AUTH_DOMAIN }} \
+            -t ${{ vars.ARTIFACTS_REGISTRY }}/${{ vars.ARTIFACTS_REPOSITORY }} .
+
+          docker tag ${{ vars.ARTIFACTS_REGISTRY }}/${{ vars.ARTIFACTS_REPOSITORY }} ${{ vars.ARTIFACTS_REGISTRY }}/${{ vars.ARTIFACTS_REPOSITORY }}:latest
+
+          docker push ${{ vars.ARTIFACTS_REGISTRY }}/${{ vars.ARTIFACTS_REPOSITORY }}:latest
+
+      # - name: Setup Terraform
+      #   uses: hashicorp/setup-terraform@v3
+      #   with:
+      #     terraform_version: "1.11.2"
+
+      # - name: Deploy Dev Environment
+      #   run: |
+      #     cd terraform/dev
+      #     terraform init
+      #     terraform apply -auto-approve \
+      #       -var="lambda_image_uri=${{ secrets.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }}:dev-${{ env.TIMESTAMP }}"

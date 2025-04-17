@@ -1,0 +1,73 @@
+# name: Build and Push Docker Image to ECR
+
+# on:
+#   push:
+#     branches: main
+#   workflow_dispatch:
+
+# jobs:
+#   build-and-push-to-ecr-deploy-with-terraform:
+#     runs-on: ubuntu-latest
+#     environment: prod
+
+#     permissions:
+#       id-token: write
+#       contents: read
+
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v4
+
+#       - name: Set up Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: "22"
+
+#       - name: Install dependencies
+#         run: npm ci
+
+#       - name: Run tests
+#         run: npm test -- --ci --reporters=default --reporters=jest-junit
+
+#       - name: Test Report
+#         uses: dorny/test-reporter@v2
+#         if: success() || failure()
+#         with:
+#           name: Jest Tests
+#           path: junit.xml
+#           reporter: jest-junit
+
+#       - name: Configure AWS credentials
+#         uses: aws-actions/configure-aws-credentials@v4
+#         with:
+#           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+#           aws-region: ${{ vars.AWS_REGION }}
+
+#       - name: Login to Amazon ECR
+#         uses: aws-actions/amazon-ecr-login@v2
+
+#       - name: Build, tag, and push image to Amazon ECR Public
+#         run: |
+#           TIMESTAMP=$(date +%Y%m%d%H%M%S)
+#           echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
+
+#           docker build -f Dockerfile.lambda \
+#             --build-arg NODE_ENV=prod \
+#             --build-arg LOG_LEVEL=info \
+#             -t ${{ secrets.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }} .
+
+#           docker tag ${{ secrets.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }} ${{ secrets.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }}:prod-$TIMESTAMP
+
+#           docker push ${{ secrets.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }}:prod-$TIMESTAMP
+
+#       - name: Setup Terraform
+#         uses: hashicorp/setup-terraform@v3
+#         with:
+#           terraform_version: "1.11.2"
+
+#       - name: Deploy Prod Environment
+#         run: |
+#           cd terraform/prod
+#           terraform init
+#           terraform apply -auto-approve \
+#             -var="lambda_image_uri=${{ secrets.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }}:prod-${{ env.TIMESTAMP }}"

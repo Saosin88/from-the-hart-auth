@@ -1,0 +1,2 @@
+gcloud auth application-default revoke
+gcloud auth application-default login --impersonate-service-account {service account email goes here. hint the firebase sdk one}
