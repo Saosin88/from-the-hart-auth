@@ -56,11 +56,9 @@ jobs:
             --build-arg FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }} \
             --build-arg FIREBASE_WEB_API_KEY=${{ secrets.FIREBASE_WEB_API_KEY }} \
             --build-arg FIREBASE_AUTH_DOMAIN=${{ secrets.FIREBASE_AUTH_DOMAIN }} \
-            -t ${{ vars.ARTIFACTS_REGISTRY }}/${{ vars.ARTIFACTS_REPOSITORY }} .
+            -t africa-south1-docker.pkg.dev/{{ secrets.FIREBASE_PROJECT_ID }}/from-the-hart-tech/from-the-hart-auth:latest .
 
-          docker tag ${{ vars.ARTIFACTS_REGISTRY }}/${{ vars.ARTIFACTS_REPOSITORY }} ${{ vars.ARTIFACTS_REGISTRY }}/${{ vars.ARTIFACTS_REPOSITORY }}:latest
-
-          docker push ${{ vars.ARTIFACTS_REGISTRY }}/${{ vars.ARTIFACTS_REPOSITORY }}:latest
+          docker push africa-south1-docker.pkg.dev/{{ secrets.FIREBASE_PROJECT_ID }}/from-the-hart-tech/from-the-hart-auth:latest
 
       # - name: Setup Terraform
       #   uses: hashicorp/setup-terraform@v3
