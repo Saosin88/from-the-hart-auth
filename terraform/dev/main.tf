@@ -68,6 +68,7 @@ resource "google_cloud_run_service" "from_the_hart_auth" {
 
 # Make the service publicly accessible
 resource "google_cloud_run_service_iam_member" "public_access" {
+  project = data.terraform_remote_state.shared.outputs.tech_dev_project_id
   service  = google_cloud_run_service.from_the_hart_auth.name
   location = google_cloud_run_service.from_the_hart_auth.location
   role     = "roles/run.invoker"
