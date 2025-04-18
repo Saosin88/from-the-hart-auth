@@ -66,13 +66,13 @@ resource "google_cloud_run_service" "from_the_hart_auth" {
   autogenerate_revision_name = true
 }
 
-# resource "google_cloud_run_service_iam_member" "public_access" {
-#   project = data.terraform_remote_state.shared.outputs.tech_dev_project_id
-#   service  = google_cloud_run_service.from_the_hart_auth.name
-#   location = google_cloud_run_service.from_the_hart_auth.location
-#   role     = "roles/run.invoker"
-#   member   = "allUsers"
-# }
+resource "google_cloud_run_service_iam_member" "cloudflare_worker_invoker" {
+  project  = data.terraform_remote_state.shared.outputs.tech_dev_project_id
+  service  = google_cloud_run_service.from_the_hart_auth.name
+  location = google_cloud_run_service.from_the_hart_auth.location
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${data.terraform_remote_state.shared.outputs.cloudflare_worker_cloud_run_invoker_service_account_email}"
+}
 
 output "service_url" {
   value = google_cloud_run_service.from_the_hart_auth.status[0].url
