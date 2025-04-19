@@ -4,7 +4,7 @@ variable "auth_image_uri" {
 }
 
 resource "google_cloud_run_service" "from_the_hart_auth" {
-  project = data.terraform_remote_state.shared.outputs.tech_dev_project_id
+  project = data.terraform_remote_state.shared.outputs.tech_prod_project_id
   name     = "from-the-hart-auth"
   location = "africa-south1"
 
@@ -42,7 +42,7 @@ resource "google_cloud_run_service" "from_the_hart_auth" {
         }
       }
 
-      service_account_name = data.terraform_remote_state.shared.outputs.tech_dev_firebase_admin_sdk_email
+      service_account_name = data.terraform_remote_state.shared.outputs.tech_prod_firebase_admin_sdk_email
 
       timeout_seconds       = 30
       container_concurrency = 80
@@ -67,7 +67,7 @@ resource "google_cloud_run_service" "from_the_hart_auth" {
 }
 
 resource "google_cloud_run_service_iam_member" "cloudflare_worker_invoker" {
-  project  = data.terraform_remote_state.shared.outputs.tech_dev_project_id
+  project  = data.terraform_remote_state.shared.outputs.tech_prod_project_id
   service  = google_cloud_run_service.from_the_hart_auth.name
   location = google_cloud_run_service.from_the_hart_auth.location
   role     = "roles/run.invoker"

@@ -1,73 +1,76 @@
-# name: Build and Push Docker Image to ECR
+name: Build and Push Docker Image to Google Artifacts Registry and Deploy to Prod Environment
 
-# on:
-#   push:
-#     branches: main
-#   workflow_dispatch:
+on:
+  push:
+    branches: main
+  workflow_dispatch:
 
-# jobs:
-#   build-and-push-to-ecr-deploy-with-terraform:
-#     runs-on: ubuntu-latest
-#     environment: prod
+jobs:
+  build-and-push-to-google-artifacts-registry:
+    runs-on: ubuntu-latest
+    environment: prod
 
-#     permissions:
-#       id-token: write
-#       contents: read
+    permissions:
+      id-token: write
+      contents: read
 
-#     steps:
-#       - name: Checkout repository
-#         uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-#       - name: Set up Node.js
-#         uses: actions/setup-node@v4
-#         with:
-#           node-version: "22"
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
 
-#       - name: Install dependencies
-#         run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-#       - name: Run tests
-#         run: npm test -- --ci --reporters=default --reporters=jest-junit
+      # - name: Run tests
+      #   run: npm test -- --ci --reporters=default --reporters=jest-junit
 
-#       - name: Test Report
-#         uses: dorny/test-reporter@v2
-#         if: success() || failure()
-#         with:
-#           name: Jest Tests
-#           path: junit.xml
-#           reporter: jest-junit
+      # - name: Test Report
+      #   uses: dorny/test-reporter@v2
+      #   if: success() || failure()
+      #   with:
+      #     name: Jest Tests
+      #     path: junit.xml
+      #     reporter: jest-junit
 
-#       - name: Configure AWS credentials
-#         uses: aws-actions/configure-aws-credentials@v4
-#         with:
-#           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-#           aws-region: ${{ vars.AWS_REGION }}
+      - name: Google Auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
-#       - name: Login to Amazon ECR
-#         uses: aws-actions/amazon-ecr-login@v2
+      - name: Configure Docker to use gcloud credentials
+        run: |
+          gcloud auth configure-docker africa-south1-docker.pkg.dev --quiet
 
-#       - name: Build, tag, and push image to Amazon ECR Public
-#         run: |
-#           TIMESTAMP=$(date +%Y%m%d%H%M%S)
-#           echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
+      - name: Build, tag, and push image to Google Artifacts repository
+        run: |
 
-#           docker build -f Dockerfile.lambda \
-#             --build-arg NODE_ENV=prod \
-#             --build-arg LOG_LEVEL=info \
-#             -t ${{ secrets.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }} .
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
 
-#           docker tag ${{ secrets.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }} ${{ secrets.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }}:prod-$TIMESTAMP
+          docker build -f Dockerfile \
+            --build-arg NODE_ENV=prod \
+            --build-arg LOG_LEVEL=debug \
+            --build-arg FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }} \
+            --build-arg FIREBASE_WEB_API_KEY=${{ secrets.FIREBASE_WEB_API_KEY }} \
+            --build-arg FIREBASE_AUTH_DOMAIN=${{ secrets.FIREBASE_AUTH_DOMAIN }} \
+            -t africa-south1-docker.pkg.dev/${{ secrets.FIREBASE_PROJECT_ID }}/from-the-hart-tech/from-the-hart-auth:$TIMESTAMP .
 
-#           docker push ${{ secrets.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }}:prod-$TIMESTAMP
+          docker push africa-south1-docker.pkg.dev/${{ secrets.FIREBASE_PROJECT_ID }}/from-the-hart-tech/from-the-hart-auth:$TIMESTAMP
 
-#       - name: Setup Terraform
-#         uses: hashicorp/setup-terraform@v3
-#         with:
-#           terraform_version: "1.11.2"
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.11.2"
 
-#       - name: Deploy Prod Environment
-#         run: |
-#           cd terraform/prod
-#           terraform init
-#           terraform apply -auto-approve \
-#             -var="lambda_image_uri=${{ secrets.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }}:prod-${{ env.TIMESTAMP }}"
+      - name: Deploy Prod Environment
+        run: |
+          cd terraform/prod
+          terraform init
+          terraform apply -auto-approve \
+            -var="auth_image_uri=africa-south1-docker.pkg.dev/${{ secrets.FIREBASE_PROJECT_ID }}/from-the-hart-tech/from-the-hart-auth:$TIMESTAMP"
