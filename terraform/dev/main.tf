@@ -42,31 +42,6 @@ resource "google_cloud_run_service" "from_the_hart_auth" {
           period_seconds        = 10
           failure_threshold     = 12
         }
-
-        env {
-          name  = "FIREBASE_PROJECT_ID"
-          value = data.terraform_remote_state.shared.outputs.tech_dev_firebase_project_id
-        }
-
-        env {
-          name  = "FIREBASE_API_KEY"
-          value = data.terraform_remote_state.shared.outputs.tech_dev_firebase_api_key
-        }
-
-        env {
-          name  = "FIREBASE_AUTH_DOMAIN"
-          value = data.terraform_remote_state.shared.outputs.tech_dev_firebase_auth_domain
-        }
-
-        env {
-          name  = "FIREBASE_DATABASE_URL"
-          value = data.terraform_remote_state.shared.outputs.tech_dev_firebase_database_url
-        }
-
-        env {
-          name  = "FIREBASE_STORAGE_BUCKET"
-          value = data.terraform_remote_state.shared.outputs.tech_dev_firebase_storage_bucket
-        }
       }
 
       service_account_name = data.terraform_remote_state.shared.outputs.tech_dev_firebase_admin_sdk_email
