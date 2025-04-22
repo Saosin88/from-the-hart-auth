@@ -11,14 +11,15 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Verify connection configuration
-transporter.verify((error) => {
-  if (error) {
-    logger.error({ error }, "SMTP connection error");
-  } else {
-    logger.info("SMTP server is ready to send messages");
-  }
-});
+export const initializeSmtp = () => {
+  transporter.verify((error) => {
+    if (error) {
+      logger.error({ error }, "SMTP connection error");
+    } else {
+      logger.info("SMTP server is ready to send messages");
+    }
+  });
+};
 
 export async function sendVerificationEmail(
   email: string,
