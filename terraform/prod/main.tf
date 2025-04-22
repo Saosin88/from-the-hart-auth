@@ -33,12 +33,14 @@ resource "google_cloud_run_service" "from_the_hart_auth" {
         }
 
         startup_probe {
-          tcp_socket {
+          http_get {
+            path = "/auth/health"
             port = 8080
           }
-          timeout_seconds   = 240
-          period_seconds    = 240
-          failure_threshold = 1
+          initial_delay_seconds = 10
+          timeout_seconds       = 5
+          period_seconds        = 10
+          failure_threshold     = 12
         }
       }
 
