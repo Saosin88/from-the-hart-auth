@@ -21,7 +21,11 @@ export const config = {
   logLevel,
   server,
   firebaseConfig,
-  // Base URL for email verification and password reset actions
+  email: {
+    gmailUser: process.env.GMAIL_USER,
+    gmailAppPassword: process.env.GMAIL_APP_PASSWORD,
+    fromAlias: process.env.EMAIL_FROM_ALIAS,
+  },
   emailActionBaseUrl:
     process.env.EMAIL_ACTION_BASE_URL ||
     `https://${

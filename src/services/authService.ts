@@ -2,6 +2,7 @@ import { AuthResponse } from "../models/AuthUser";
 import { logger } from "../config/logger";
 import { config } from "../config";
 import { adminAuth } from "./firebase";
+import { sendVerificationEmail, sendPasswordResetEmail } from "./emailService";
 
 export const registerUser = async (
   email: string,
@@ -249,19 +250,15 @@ async function generateEmailVerificationLink(email: string): Promise<void> {
       actionCodeSettings
     );
 
-    // Here you would typically send the email with the link
-    // This could be done via a separate email service
-    logger.info({ email, link }, "Generated verification link");
+    await sendVerificationEmail(email, link);
 
-    // For this implementation, we're assuming Firebase's built-in email sending is enabled
-    // and will handle sending the email automatically
+    logger.info({ email }, "Verification email sent via Gmail");
   } catch (error) {
-    logger.error({ error, email }, "Error generating verification link");
+    logger.error({ error, email }, "Error sending verification email");
     throw error;
   }
 }
 
-// Generate password reset link using Admin SDK
 async function generatePasswordResetLink(email: string): Promise<void> {
   try {
     const actionCodeSettings = {
@@ -274,12 +271,10 @@ async function generatePasswordResetLink(email: string): Promise<void> {
       actionCodeSettings
     );
 
-    // Here you would typically send the email with the link
-    // This could be done via a separate email service
-    logger.info({ email, link }, "Generated password reset link");
+    // Send email via Gmail SMTP
+    await sendPasswordResetEmail(email, link);
 
-    // For this implementation, we're assuming Firebase's built-in email sending is enabled
-    // and will handle sending the email automatically
+    logger.info({ email }, "Password reset email sent via Gmail");
   } catch (error) {
     logger.error({ error, email }, "Error generating password reset link");
     throw error;
