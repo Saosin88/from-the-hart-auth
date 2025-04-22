@@ -5,11 +5,13 @@ const app = buildApp();
 
 const start = async () => {
   try {
+    app.log.info(`SERVER_HOST: ${config.server.host}`);
+    app.log.info(`SERVER_POSRT: ${config.server.port}`);
+    app.log.info(`NODE_ENV: ${config.env}`);
     await app.listen({
       port: config.server.port,
       host: config.server.host,
     });
-    app.log.info(`NODE_ENV: ${config.env}`);
   } catch (err) {
     app.log.error(err);
     process.exit(1);
