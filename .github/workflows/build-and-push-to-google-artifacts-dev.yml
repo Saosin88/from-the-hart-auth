@@ -59,6 +59,9 @@ jobs:
             --build-arg FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }} \
             --build-arg FIREBASE_WEB_API_KEY=${{ secrets.FIREBASE_WEB_API_KEY }} \
             --build-arg FIREBASE_AUTH_DOMAIN=${{ secrets.FIREBASE_AUTH_DOMAIN }} \
+            --build-arg GMAIL_USER=${{ secrets.GMAIL_USER }} \
+            --build-arg GMAIL_APP_PASSWORD=${{ secrets.GMAIL_APP_PASSWORD }} \
+            --build-arg EMAIL_FROM_ALIAS=${{ vars.EMAIL_FROM_ALIAS }} \
             -t africa-south1-docker.pkg.dev/${{ secrets.FIREBASE_PROJECT_ID }}/from-the-hart-tech/from-the-hart-auth:$TIMESTAMP .
 
           docker push africa-south1-docker.pkg.dev/${{ secrets.FIREBASE_PROJECT_ID }}/from-the-hart-tech/from-the-hart-auth:$TIMESTAMP
