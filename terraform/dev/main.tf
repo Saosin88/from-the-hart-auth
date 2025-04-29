@@ -35,6 +35,7 @@ resource "google_cloud_run_service_iam_member" "cloudflare_worker_invoker" {
 variable "auth_image_uri" {
   description = "Google Artifacts image URI for the Auth service"
   type        = string
+  default = "africa-south1-docker.pkg.dev/from-the-hart-tech-dev/from-the-hart-tech/from-the-hart-auth:20250422143014"
 }
 
 resource "google_cloud_run_service" "from_the_hart_auth" {
@@ -128,7 +129,7 @@ resource "google_identity_platform_config" "from_the_hart_auth" {
 }
 
 resource "google_firestore_database" "tech_dev_auth_firestore_database" {
-  project     = google_project.tech_dev.project_id
+  project     = data.terraform_remote_state.shared.outputs.tech_dev_project_id
   name        = "auth"
   location_id = "africa-south1"
   type        = "FIRESTORE_NATIVE"
