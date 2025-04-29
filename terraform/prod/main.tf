@@ -28,7 +28,6 @@ resource "google_cloud_run_service_iam_member" "cloudflare_worker_invoker" {
 variable "auth_image_uri" {
   description = "Google Artifacts image URI for the Auth service"
   type        = string
-  default = "africa-south1-docker.pkg.dev/from-the-hart-tech-prod/from-the-hart-tech/from-the-hart-auth:20250422143414"
 }
 
 resource "google_cloud_run_service" "from_the_hart_auth" {
@@ -112,6 +111,10 @@ resource "google_identity_platform_config" "from_the_hart_auth" {
       enabled            = false
       test_phone_numbers = {}
     }
+  }
+
+  multi_tenant {
+    enabled = false
   }
 
   authorized_domains = [
