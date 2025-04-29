@@ -1,5 +1,7 @@
 const logLevel = process.env.LOG_LEVEL || "debug";
 const env = process.env.NODE_ENV || "local";
+const websiteAuthBaseUrl =
+  process.env.WEBSITE_AUTH_BASE_URL || "https://www.fromthehart.tech/auth";
 
 const server = {
   port: process.env.PORT ? parseInt(process.env.PORT, 10) : 8080,
@@ -16,20 +18,17 @@ const firebaseConfig = {
   ),
 };
 
+const email = {
+  gmailUser: process.env.GMAIL_USER,
+  gmailAppPassword: process.env.GMAIL_APP_PASSWORD,
+  fromAlias: process.env.EMAIL_FROM_ALIAS,
+};
+
 export const config = {
   env,
   logLevel,
   server,
   firebaseConfig,
-  email: {
-    gmailUser: process.env.GMAIL_USER,
-    gmailAppPassword: process.env.GMAIL_APP_PASSWORD,
-    fromAlias: process.env.EMAIL_FROM_ALIAS,
-  },
-  emailActionBaseUrl:
-    process.env.EMAIL_ACTION_BASE_URL ||
-    `https://${
-      process.env.FIREBASE_AUTH_DOMAIN ||
-      `${process.env.FIREBASE_PROJECT_ID}.firebaseapp.com`
-    }`,
+  email,
+  websiteAuthBaseUrl,
 };

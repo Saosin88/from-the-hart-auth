@@ -82,7 +82,6 @@ docker build \
   --build-arg LOG_LEVEL=debug \
   --build-arg FIREBASE_PROJECT_ID=your-project-id \
   --build-arg FIREBASE_WEB_API_KEY=your-api-key \
-  --build-arg FIREBASE_AUTH_DOMAIN=your-domain \
   --build-arg GMAIL_USER=your-email \
   --build-arg GMAIL_APP_PASSWORD=your-password \
   --build-arg EMAIL_FROM_ALIAS="your-alias" \
@@ -132,6 +131,7 @@ This service is part of the "From The Hart" multi-cloud infrastructure managed w
 - **API Gateway Integration**: Through Cloudflare Workers reverse proxy
 
 The infrastructure is managed using Terraform with shared state:
+
 - State is stored remotely in an AWS S3 bucket (`from-the-hart-terraform`)
 - Cloudflare Workers provide API reverse proxying and routing
 
@@ -151,7 +151,6 @@ http://localhost:8080/auth/documentation
 
 - `FIREBASE_PROJECT_ID` - Your Firebase project ID
 - `FIREBASE_WEB_API_KEY` - Firebase Web API Key
-- `FIREBASE_AUTH_DOMAIN` - Firebase Auth Domain (typically your-project-id.firebaseapp.com)
 
 ### Email Configuration
 

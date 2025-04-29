@@ -1,12 +1,17 @@
 import * as admin from "firebase-admin";
 import { logger } from "../config/logger";
 import { config } from "../config";
+import { FieldValue } from "firebase-admin/firestore";
 
 export const initializeFirebaseAdmin = (): void => {
   try {
     if (admin.apps.length === 0) {
       admin.initializeApp({
         projectId: config.firebaseConfig.projectId,
+      });
+
+      admin.firestore().settings({
+        databaseId: "auth",
       });
       logger.info("Firebase Admin SDK initialized");
     }
@@ -18,5 +23,6 @@ export const initializeFirebaseAdmin = (): void => {
   }
 };
 
-// Export function to get auth instance
 export const adminAuth = admin.auth;
+
+export const firestore = () => admin.firestore();

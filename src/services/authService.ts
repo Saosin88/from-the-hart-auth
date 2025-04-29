@@ -1,8 +1,9 @@
 import { AuthResponse } from "../models/AuthUser";
 import { logger } from "../config/logger";
 import { config } from "../config";
-import { adminAuth } from "./firebase";
+import { adminAuth, firestore } from "./firebase";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./emailService";
+import * as jwt from "jsonwebtoken";
 
 export const registerUser = async (
   email: string,
@@ -139,6 +140,50 @@ export const refreshUserToken = async (
   }
 };
 
+export const verifyEmailToken = async (token: string): Promise<boolean> => {
+  try {
+    const decoded = jwt.decode(token) as { email?: string };
+
+    if (!decoded || !decoded.email) {
+      logger.error("Invalid token format");
+      return false;
+    }
+
+    const email = decoded.email;
+
+    const keyDoc = await firestore()
+      .collection("verify-email-keys")
+      .doc(email)
+      .get();
+
+    if (!keyDoc.exists || !keyDoc.data()?.key) {
+      logger.error({ email }, "Verification key not found");
+      return false;
+    }
+
+    const key = keyDoc.data()?.key;
+
+    const verifiedToken = jwt.verify(token, key) as { email: string };
+
+    if (verifiedToken && verifiedToken.email === email) {
+      await adminAuth().updateUser(email, { emailVerified: true });
+
+      await keyDoc.ref.delete();
+
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    if ((error as Error).name === "TokenExpiredError") {
+      logger.error("Token has expired");
+    } else {
+      logger.error({ error }, "Error verifying email token");
+    }
+    return false;
+  }
+};
+
 async function signInWithEmailPassword(
   email: string,
   password: string
@@ -239,48 +284,6 @@ async function exchangeCustomTokenForIdToken(
   }
 }
 
-async function generateEmailVerificationLink(email: string): Promise<void> {
-  try {
-    const actionCodeSettings = {
-      url: config.emailActionBaseUrl + "/verify-email",
-    };
-
-    const link = await adminAuth().generateEmailVerificationLink(
-      email,
-      actionCodeSettings
-    );
-
-    await sendVerificationEmail(email, link);
-
-    logger.info({ email }, "Verification email sent via Gmail");
-  } catch (error) {
-    logger.error({ error, email }, "Error sending verification email");
-    throw error;
-  }
-}
-
-async function generatePasswordResetLink(email: string): Promise<void> {
-  try {
-    const actionCodeSettings = {
-      url: config.emailActionBaseUrl + "/reset-password",
-      handleCodeInApp: true,
-    };
-
-    const link = await adminAuth().generatePasswordResetLink(
-      email,
-      actionCodeSettings
-    );
-
-    // Send email via Gmail SMTP
-    await sendPasswordResetEmail(email, link);
-
-    logger.info({ email }, "Password reset email sent via Gmail");
-  } catch (error) {
-    logger.error({ error, email }, "Error generating password reset link");
-    throw error;
-  }
-}
-
 async function refreshIdToken(token: string): Promise<any> {
   if (!config.firebaseConfig.webAPIKey) {
     throw new Error("Firebase Web API Key is required for token refresh");
@@ -320,4 +323,55 @@ async function refreshIdToken(token: string): Promise<any> {
     logger.error({ error }, "Error refreshing token");
     return null;
   }
+}
+
+async function generateEmailVerificationLink(email: string): Promise<void> {
+  try {
+    const key = [...Array(16)]
+      .map(() => Math.random().toString(36).charAt(2))
+      .join("");
+
+    logger.info({ key }, "Generated verification key");
+
+    const token = jwt.sign({ email }, key, { expiresIn: "24h" });
+
+    logger.info({ token }, "Generated verification token");
+
+    await firestore().collection("verify-email-keys").doc(email).set({
+      key,
+      createdAt: new Date(),
+    });
+
+    logger.info({ email }, "Stored verification key in Firestore");
+
+    const link = `${config.websiteAuthBaseUrl}/verify-email?token=${token}`;
+
+    logger.info({ link }, "Generated verification link");
+
+    await sendVerificationEmail(email, link);
+
+    logger.info({ email }, "Verification email sent");
+  } catch (error) {
+    logger.error({ error, email }, "Error sending verification email");
+    throw error;
+  }
+}
+
+async function generatePasswordResetLink(email: string): Promise<void> {
+  // try {
+  //   const actionCodeSettings = {
+  //     url: config.emailActionBaseUrl + "/reset-password",
+  //     handleCodeInApp: true,
+  //   };
+  //   const link = await adminAuth().generatePasswordResetLink(
+  //     email,
+  //     actionCodeSettings
+  //   );
+  //   // Send email via Gmail SMTP
+  //   await sendPasswordResetEmail(email, link);
+  //   logger.info({ email }, "Password reset email sent via Gmail");
+  // } catch (error) {
+  //   logger.error({ error, email }, "Error generating password reset link");
+  //   throw error;
+  // }
 }
