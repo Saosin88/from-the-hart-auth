@@ -18,13 +18,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
+      # - name: Set up Node.js
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: "22"
 
-      - name: Install dependencies
-        run: npm ci
+      # - name: Install dependencies
+      #   run: npm ci
 
       # - name: Run tests
       #   run: npm test -- --ci --reporters=default --reporters=jest-junit
@@ -42,7 +42,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
           create_credentials_file: true # Make sure this is set to true
 
       - name: Configure Docker to use gcloud credentials
@@ -51,7 +51,7 @@ jobs:
 
       - name: Debug Authentication
         run: |
-          echo "Using service account: ${{ secrets.GCP_SERVICE_ACCOUNT }}"
+          echo "Using service account: ${{ vars.GCP_SERVICE_ACCOUNT }}"
           gcloud auth list
           gcloud config list
 
