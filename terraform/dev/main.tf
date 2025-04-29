@@ -119,9 +119,9 @@ resource "google_identity_platform_config" "from_the_hart_auth" {
       test_phone_numbers = {}
     }
   }
-  
+
   multi_tenant {
-    enabled = false
+    allow_tenants = false
   }
 
   authorized_domains = [
