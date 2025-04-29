@@ -38,10 +38,12 @@ jobs:
       #     reporter: jest-junit
 
       - name: Google Auth
+        id: auth # Add this ID
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true # Make sure this is set to true
 
       - name: Configure Docker to use gcloud credentials
         run: |
@@ -52,6 +54,25 @@ jobs:
           echo "Using service account: ${{ secrets.GCP_SERVICE_ACCOUNT }}"
           gcloud auth list
           gcloud config list
+
+          # Show credential file structure (safely without exposing secrets)
+          if [[ -f "$GOOGLE_APPLICATION_CREDENTIALS" ]]; then
+            echo "Credential file exists with size: $(stat -c %s $GOOGLE_APPLICATION_CREDENTIALS) bytes"
+            echo "Credential file structure:"
+            jq 'keys' $GOOGLE_APPLICATION_CREDENTIALS
+            
+            # Check if it has basic required fields (without showing values)
+            echo "Has 'type' field: $(jq 'has("type")' $GOOGLE_APPLICATION_CREDENTIALS)"
+            echo "Has 'client_id' field: $(jq 'has("client_id")' $GOOGLE_APPLICATION_CREDENTIALS)"
+            echo "Has 'client_email' field: $(jq 'has("client_email")' $GOOGLE_APPLICATION_CREDENTIALS)"
+            echo "Has 'private_key' field: $(jq 'has("private_key")' $GOOGLE_APPLICATION_CREDENTIALS)"
+            echo "Has 'token_uri' field: $(jq 'has("token_uri")' $GOOGLE_APPLICATION_CREDENTIALS)"
+          else
+            echo "Credential file does not exist at $GOOGLE_APPLICATION_CREDENTIALS"
+          fi
+
+          # Check access token provided by auth action
+          echo "Access token available: ${{ steps.auth.outputs.access_token != '' }}"
 
       - name: Build, tag, and push image to Google Artifacts repository
         run: |
