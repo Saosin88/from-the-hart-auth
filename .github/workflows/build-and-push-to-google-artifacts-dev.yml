@@ -47,6 +47,12 @@ jobs:
         run: |
           gcloud auth configure-docker africa-south1-docker.pkg.dev --quiet
 
+      - name: Debug Authentication
+        run: |
+          echo "Using service account: ${{ secrets.GCP_SERVICE_ACCOUNT }}"
+          gcloud auth list
+          gcloud config list
+
       - name: Build, tag, and push image to Google Artifacts repository
         run: |
 
