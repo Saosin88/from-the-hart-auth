@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import { logger } from "../config/logger";
 import { config } from "../config";
+import { FieldValue } from "firebase-admin/firestore";
 
 export const initializeFirebaseAdmin = (): void => {
   try {
@@ -18,5 +19,6 @@ export const initializeFirebaseAdmin = (): void => {
   }
 };
 
-// Export function to get auth instance
 export const adminAuth = admin.auth;
+
+export const firestore = () => admin.firestore();

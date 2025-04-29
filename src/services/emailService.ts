@@ -23,7 +23,7 @@ export const initializeSmtp = () => {
 
 export async function sendVerificationEmail(
   email: string,
-  verificationLink: string
+  link: string
 ): Promise<void> {
   try {
     await transporter.sendMail({
@@ -35,14 +35,14 @@ export async function sendVerificationEmail(
           <h2>Welcome to From The Hart!</h2>
           <p>Please verify your email address by clicking the button below:</p>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${verificationLink}" style="background-color: #4CAF50; color: white; padding: 15px 25px; text-decoration: none; border-radius: 4px;">Verify Email</a>
+            <a href="${link}" style="background-color: #4CAF50; color: white; padding: 15px 25px; text-decoration: none; border-radius: 4px;">Verify Email</a>
           </div>
           <p>If the button doesn't work, you can copy this link into your browser:</p>
-          <p>${verificationLink}</p>
+          <p>${link}</p>
           <p>This link will expire in 24 hours.</p>
         </div>
       `,
-      text: `Welcome to From The Hart! Please verify your email by clicking this link: ${verificationLink}`,
+      text: `Welcome to From The Hart! Please verify your email by clicking this link: ${link}`,
     });
 
     logger.info({ email }, "Verification email sent");
