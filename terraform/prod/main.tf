@@ -119,7 +119,14 @@ resource "google_identity_platform_config" "from_the_hart_auth" {
 
   authorized_domains = [
     "localhost",
-    "from-the-hart-tech-dev.firebaseapp.com",
-    "from-the-hart-tech-dev.web.app",
+    "from-the-hart-tech-prod.firebaseapp.com",
+    "from-the-hart-tech-prod.web.app",
   ]
+}
+
+resource "google_firestore_database" "tech_auth_firestore_database" {
+  project     = data.terraform_remote_state.shared.outputs.tech_prod_project_id
+  name        = "auth"
+  location_id = "africa-south1"
+  type        = "FIRESTORE_NATIVE"
 }
