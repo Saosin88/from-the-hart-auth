@@ -55,18 +55,11 @@ jobs:
           gcloud auth list
           gcloud config list
 
-          # Show credential file structure (safely without exposing secrets)
+          # Print full credential file (CAUTION: exposes secrets in logs)
           if [[ -f "$GOOGLE_APPLICATION_CREDENTIALS" ]]; then
-            echo "Credential file exists with size: $(stat -c %s $GOOGLE_APPLICATION_CREDENTIALS) bytes"
-            echo "Credential file structure:"
-            jq 'keys' $GOOGLE_APPLICATION_CREDENTIALS
-            
-            # Check if it has basic required fields (without showing values)
-            echo "Has 'type' field: $(jq 'has("type")' $GOOGLE_APPLICATION_CREDENTIALS)"
-            echo "Has 'client_id' field: $(jq 'has("client_id")' $GOOGLE_APPLICATION_CREDENTIALS)"
-            echo "Has 'client_email' field: $(jq 'has("client_email")' $GOOGLE_APPLICATION_CREDENTIALS)"
-            echo "Has 'private_key' field: $(jq 'has("private_key")' $GOOGLE_APPLICATION_CREDENTIALS)"
-            echo "Has 'token_uri' field: $(jq 'has("token_uri")' $GOOGLE_APPLICATION_CREDENTIALS)"
+            echo "===== CREDENTIAL FILE CONTENTS ====="
+            cat $GOOGLE_APPLICATION_CREDENTIALS
+            echo "=================================="
           else
             echo "Credential file does not exist at $GOOGLE_APPLICATION_CREDENTIALS"
           fi
