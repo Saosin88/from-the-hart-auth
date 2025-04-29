@@ -152,9 +152,7 @@ export const verifyEmailToken = async (token: string): Promise<boolean> => {
     const email = decoded.email;
 
     const keyDoc = await firestore()
-      .collection("auth")
-      .doc("verify-email-keys")
-      .collection("keys")
+      .collection("verify-email-keys")
       .doc(email)
       .get();
 
@@ -333,19 +331,22 @@ async function generateEmailVerificationLink(email: string): Promise<void> {
       .map(() => Math.random().toString(36).charAt(2))
       .join("");
 
+    logger.info({ key }, "Generated verification key");
+
     const token = jwt.sign({ email }, key, { expiresIn: "24h" });
 
-    await firestore()
-      .collection("auth")
-      .doc("verify-email-keys")
-      .collection("keys")
-      .doc(email)
-      .set({
-        key,
-        createdAt: new Date(),
-      });
+    logger.info({ token }, "Generated verification token");
+
+    await firestore().collection("verify-email-keys").doc(email).set({
+      key,
+      createdAt: new Date(),
+    });
+
+    logger.info({ email }, "Stored verification key in Firestore");
 
     const link = `${config.websiteAuthBaseUrl}/verify-email?token=${token}`;
+
+    logger.info({ link }, "Generated verification link");
 
     await sendVerificationEmail(email, link);
 

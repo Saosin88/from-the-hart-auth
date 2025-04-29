@@ -9,6 +9,10 @@ export const initializeFirebaseAdmin = (): void => {
       admin.initializeApp({
         projectId: config.firebaseConfig.projectId,
       });
+
+      admin.firestore().settings({
+        databaseId: "auth",
+      });
       logger.info("Firebase Admin SDK initialized");
     }
   } catch (error) {
