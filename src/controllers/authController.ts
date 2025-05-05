@@ -33,16 +33,26 @@ export const register = async (
     if (firebaseError.code) {
       switch (firebaseError.code) {
         case "auth/email-already-exists":
-          return reply.code(409).send({ error: "Email already in use" });
+          return reply
+            .code(409)
+            .send({ error: { message: "Email already in use" } });
         case "auth/invalid-email":
-          return reply.code(400).send({ error: "Invalid email format" });
+          return reply
+            .code(400)
+            .send({ error: { message: "Invalid email format" } });
         case "auth/weak-password":
-          return reply.code(400).send({ error: "Password is too weak" });
+          return reply
+            .code(400)
+            .send({ error: { message: "Password is too weak" } });
         default:
-          return reply.code(400).send({ error: "Invalid registration data" });
+          return reply
+            .code(400)
+            .send({ error: { message: "Invalid registration data" } });
       }
     }
-    return reply.code(400).send({ error: "Invalid registration data" });
+    return reply
+      .code(400)
+      .send({ error: { message: "Invalid registration data" } });
   }
 };
 
@@ -57,7 +67,9 @@ export const login = async (
     const authResponse = await authService.authenticateUser(email, password);
 
     if (!authResponse) {
-      return reply.code(401).send({ error: "Invalid credentials" });
+      return reply
+        .code(401)
+        .send({ error: { message: "Invalid credentials" } });
     }
 
     return reply.code(200).send({ data: authResponse });
@@ -67,15 +79,23 @@ export const login = async (
     if (firebaseError.code) {
       switch (firebaseError.code) {
         case "auth/user-disabled":
-          return reply.code(403).send({ error: "Account has been disabled" });
+          return reply
+            .code(403)
+            .send({ error: { message: "Account has been disabled" } });
         case "auth/user-not-found":
         case "auth/wrong-password":
-          return reply.code(401).send({ error: "Invalid credentials" });
+          return reply
+            .code(401)
+            .send({ error: { message: "Invalid credentials" } });
         default:
-          return reply.code(400).send({ error: "Invalid login attempt" });
+          return reply
+            .code(400)
+            .send({ error: { message: "Invalid login attempt" } });
       }
     }
-    return reply.code(400).send({ error: "Invalid login attempt" });
+    return reply
+      .code(400)
+      .send({ error: { message: "Invalid login attempt" } });
   }
 };
 
@@ -145,7 +165,9 @@ export const verifyEmail = async (
     const { token } = request.body;
 
     if (!token) {
-      return reply.code(400).send({ error: "Verification token is required" });
+      return reply
+        .code(400)
+        .send({ error: { message: "Verification token is required" } });
     }
 
     const verified = await authService.verifyEmailToken(token);
@@ -159,14 +181,18 @@ export const verifyEmail = async (
       });
     } else {
       return reply.code(400).send({
-        error: "Invalid or expired verification token",
+        error: {
+          message: "Invalid or expired verification token",
+        },
       });
     }
   } catch (error) {
     logger.error({ error }, "Email verification error");
     return reply.code(400).send({
-      error:
-        "Failed to verify email. Please try again or request a new verification link.",
+      error: {
+        message:
+          "Failed to verify email. Please try again or request a new verification link.",
+      },
     });
   }
 };
@@ -184,7 +210,7 @@ export const refreshToken = async (
     if (!authResponse) {
       return reply
         .code(401)
-        .send({ error: "Invalid or expired refresh token" });
+        .send({ error: { message: "Invalid or expired refresh token" } });
     }
 
     return reply.code(200).send({ data: authResponse });
@@ -195,14 +221,71 @@ export const refreshToken = async (
     if (firebaseError.code) {
       switch (firebaseError.code) {
         case "auth/user-disabled":
-          return reply.code(403).send({ error: "Account has been disabled" });
+          return reply
+            .code(403)
+            .send({ error: { message: "Account has been disabled" } });
         default:
           return reply
             .code(401)
-            .send({ error: "Invalid or expired refresh token" });
+            .send({ error: { message: "Invalid or expired refresh token" } });
       }
     }
 
-    return reply.code(401).send({ error: "Invalid or expired refresh token" });
+    return reply
+      .code(401)
+      .send({ error: { message: "Invalid or expired refresh token" } });
+  }
+};
+
+export const resetPassword = async (
+  request: FastifyRequest<{
+    Body: { token: string; password: string };
+  }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { token, password } = request.body;
+
+    if (!token) {
+      return reply
+        .code(400)
+        .send({ error: { message: "Reset token is required" } });
+    }
+
+    if (!password || password.length < 6) {
+      return reply.code(400).send({
+        error: {
+          message: "A strong password is required (minimum 6 characters)",
+        },
+      });
+    }
+
+    const passwordUpdated = await authService.verifyTokenAndUpdatePassword(
+      token,
+      password
+    );
+
+    if (passwordUpdated) {
+      return reply.code(200).send({
+        data: {
+          success: true,
+          message: "Password has been successfully reset",
+        },
+      });
+    } else {
+      return reply.code(400).send({
+        error: {
+          message: "Invalid or expired reset token",
+        },
+      });
+    }
+  } catch (error) {
+    logger.error({ error }, "Password reset error");
+    return reply.code(400).send({
+      error: {
+        message:
+          "Failed to reset password. Please try again or request a new reset link.",
+      },
+    });
   }
 };

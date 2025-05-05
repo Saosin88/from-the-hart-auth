@@ -193,6 +193,62 @@ export const verifyEmailToken = async (token: string): Promise<boolean> => {
   }
 };
 
+export const verifyTokenAndUpdatePassword = async (
+  token: string,
+  newPassword: string
+): Promise<boolean> => {
+  try {
+    const decoded = jwt.decode(token) as { email?: string };
+
+    if (!decoded || !decoded.email) {
+      logger.error("Invalid token format");
+      return false;
+    }
+
+    const email = decoded.email;
+
+    const keyDoc = await firestore()
+      .collection("forgot-password-keys")
+      .doc(email)
+      .get();
+
+    if (!keyDoc.exists || !keyDoc.data()?.key) {
+      logger.error({ email }, "Password reset key not found");
+      return false;
+    }
+
+    const key = keyDoc.data()?.key;
+
+    const verifiedToken = jwt.verify(token, key) as { email: string };
+
+    if (verifiedToken && verifiedToken.email === email) {
+      logger.debug({ email }, "Password reset token verified successfully");
+
+      const uid = keyDoc.data()?.uid;
+      if (!uid) {
+        logger.error({ email }, "User UID not found in password reset data");
+        return false;
+      }
+
+      await adminAuth().updateUser(uid, { password: newPassword });
+      logger.debug({ email }, "User password updated successfully");
+
+      await keyDoc.ref.delete();
+
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    if ((error as Error).name === "TokenExpiredError") {
+      logger.error("Password reset token has expired");
+    } else {
+      logger.error({ error }, "Error verifying password reset token");
+    }
+    return false;
+  }
+};
+
 async function signInWithEmailPassword(
   email: string,
   password: string
@@ -380,21 +436,48 @@ async function generateEmailVerificationLink(
   }
 }
 
-async function generatePasswordResetLink(email: string): Promise<void> {
-  // try {
-  //   const actionCodeSettings = {
-  //     url: config.emailActionBaseUrl + "/reset-password",
-  //     handleCodeInApp: true,
-  //   };
-  //   const link = await adminAuth().generatePasswordResetLink(
-  //     email,
-  //     actionCodeSettings
-  //   );
-  //   // Send email via Gmail SMTP
-  //   await sendPasswordResetEmail(email, link);
-  //   logger.info({ email }, "Password reset email sent via Gmail");
-  // } catch (error) {
-  //   logger.error({ error, email }, "Error generating password reset link");
-  //   throw error;
-  // }
+async function generatePasswordResetLink(
+  email: string,
+  uid?: string
+): Promise<void> {
+  try {
+    let userUid = uid;
+    if (!userUid) {
+      const userRecord = await adminAuth().getUserByEmail(email);
+      userUid = userRecord.uid;
+      logger.info(
+        { email, uid: userUid },
+        "Retrieved user UID for password reset"
+      );
+    }
+
+    const key = [...Array(16)]
+      .map(() => Math.random().toString(36).charAt(2))
+      .join("");
+
+    logger.info({ key }, "Generated password reset key");
+
+    const token = jwt.sign({ email }, key, { expiresIn: "1h" });
+
+    logger.info({ token }, "Generated password reset token");
+
+    await firestore().collection("forgot-password-keys").doc(email).set({
+      key,
+      createdAt: new Date(),
+      uid: userUid,
+    });
+
+    logger.info({ email }, "Stored password reset key in Firestore");
+
+    const link = `${config.websiteAuthBaseUrl}/reset-password?token=${token}`;
+
+    logger.info({ link }, "Generated password reset link");
+
+    await sendPasswordResetEmail(email, link);
+
+    logger.info({ email }, "Password reset email sent");
+  } catch (error) {
+    logger.error({ error, email }, "Error sending password reset email");
+    throw error;
+  }
 }

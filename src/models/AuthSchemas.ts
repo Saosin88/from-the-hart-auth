@@ -1,4 +1,3 @@
-// filepath: /home/sheldon/Projects/From The Hart/from-the-hart-auth/src/models/AuthSchemas.ts
 import { Type, Static } from "@fastify/type-provider-typebox";
 
 export const AuthResponseSchema = Type.Object({
@@ -30,7 +29,7 @@ export type PasswordReset = Static<typeof PasswordResetSchema>;
 
 export const PasswordUpdateSchema = Type.Object({
   password: Type.String(),
-  resetToken: Type.String(),
+  token: Type.String(),
 });
 
 export type PasswordUpdate = Static<typeof PasswordUpdateSchema>;
@@ -41,7 +40,6 @@ export const EmailVerificationSchema = Type.Object({
 
 export type EmailVerification = Static<typeof EmailVerificationSchema>;
 
-// Added schemas that were previously defined inline in routes
 export const EmailVerificationTokenSchema = Type.Object({
   token: Type.String(),
 });
@@ -65,14 +63,13 @@ export type StandardMessageResponse = Static<
 >;
 
 export const VerificationResponseSchema = Type.Object({
-  verified: Type.Boolean(),
   message: Type.String(),
 });
 
 export type VerificationResponse = Static<typeof VerificationResponseSchema>;
 
 export const ErrorResponseSchema = Type.Object({
-  error: Type.String(),
+  message: Type.String(),
 });
 
 export type ErrorResponse = Static<typeof ErrorResponseSchema>;

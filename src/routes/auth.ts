@@ -12,6 +12,7 @@ import {
   VerificationResponseSchema,
   HealthCheckResponseSchema,
   ErrorResponseSchema,
+  PasswordUpdateSchema,
 } from "../models/AuthSchemas";
 
 const authRoutes = async (
@@ -153,6 +154,27 @@ const authRoutes = async (
       },
     },
     handler: authController.verifyEmail,
+  });
+
+  fastify.post("/reset-password", {
+    schema: {
+      body: PasswordUpdateSchema,
+      response: {
+        200: {
+          type: "object",
+          properties: {
+            data: VerificationResponseSchema,
+          },
+        },
+        400: {
+          type: "object",
+          properties: {
+            error: ErrorResponseSchema,
+          },
+        },
+      },
+    },
+    handler: authController.resetPassword,
   });
 
   fastify.post("/refresh-token", {
