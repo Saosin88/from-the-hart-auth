@@ -135,6 +135,42 @@ export const resendVerificationEmail = async (
   }
 };
 
+export const verifyEmail = async (
+  request: FastifyRequest<{
+    Body: { token: string };
+  }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { token } = request.body;
+
+    if (!token) {
+      return reply.code(400).send({ error: "Verification token is required" });
+    }
+
+    const verified = await authService.verifyEmailToken(token);
+
+    if (verified) {
+      return reply.code(200).send({
+        data: {
+          verified: true,
+          message: "Email verified successfully",
+        },
+      });
+    } else {
+      return reply.code(400).send({
+        error: "Invalid or expired verification token",
+      });
+    }
+  } catch (error) {
+    logger.error({ error }, "Email verification error");
+    return reply.code(400).send({
+      error:
+        "Failed to verify email. Please try again or request a new verification link.",
+    });
+  }
+};
+
 export const refreshToken = async (
   request: FastifyRequest<{
     Body: { refreshToken: string };

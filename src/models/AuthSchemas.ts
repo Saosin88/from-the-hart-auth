@@ -1,0 +1,86 @@
+// filepath: /home/sheldon/Projects/From The Hart/from-the-hart-auth/src/models/AuthSchemas.ts
+import { Type, Static } from "@fastify/type-provider-typebox";
+
+export const AuthResponseSchema = Type.Object({
+  idToken: Type.String(),
+  refreshToken: Type.String(),
+});
+
+export type AuthResponse = Static<typeof AuthResponseSchema>;
+
+export const UserCredentialsSchema = Type.Object({
+  email: Type.String({ format: "email" }),
+  password: Type.String(),
+});
+
+export type UserCredentials = Static<typeof UserCredentialsSchema>;
+
+export const UserRegistrationSchema = Type.Object({
+  email: Type.String({ format: "email" }),
+  password: Type.String(),
+});
+
+export type UserRegistration = Static<typeof UserRegistrationSchema>;
+
+export const PasswordResetSchema = Type.Object({
+  email: Type.String({ format: "email" }),
+});
+
+export type PasswordReset = Static<typeof PasswordResetSchema>;
+
+export const PasswordUpdateSchema = Type.Object({
+  password: Type.String(),
+  resetToken: Type.String(),
+});
+
+export type PasswordUpdate = Static<typeof PasswordUpdateSchema>;
+
+export const EmailVerificationSchema = Type.Object({
+  email: Type.String({ format: "email" }),
+});
+
+export type EmailVerification = Static<typeof EmailVerificationSchema>;
+
+// Added schemas that were previously defined inline in routes
+export const EmailVerificationTokenSchema = Type.Object({
+  token: Type.String(),
+});
+
+export type EmailVerificationToken = Static<
+  typeof EmailVerificationTokenSchema
+>;
+
+export const RefreshTokenSchema = Type.Object({
+  refreshToken: Type.String(),
+});
+
+export type RefreshToken = Static<typeof RefreshTokenSchema>;
+
+export const StandardMessageResponseSchema = Type.Object({
+  message: Type.String(),
+});
+
+export type StandardMessageResponse = Static<
+  typeof StandardMessageResponseSchema
+>;
+
+export const VerificationResponseSchema = Type.Object({
+  verified: Type.Boolean(),
+  message: Type.String(),
+});
+
+export type VerificationResponse = Static<typeof VerificationResponseSchema>;
+
+export const ErrorResponseSchema = Type.Object({
+  error: Type.String(),
+});
+
+export type ErrorResponse = Static<typeof ErrorResponseSchema>;
+
+export const HealthCheckResponseSchema = Type.Object({
+  status: Type.String(),
+  uptime: Type.Number(),
+  timestamp: Type.Number(),
+});
+
+export type HealthCheckResponse = Static<typeof HealthCheckResponseSchema>;

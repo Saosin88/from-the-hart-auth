@@ -1,4 +1,4 @@
-import { AuthResponse } from "../models/AuthUser";
+import { AuthResponse } from "../models/AuthSchemas";
 import { logger } from "../config/logger";
 import { config } from "../config";
 import { adminAuth, firestore } from "./firebase";
@@ -27,7 +27,7 @@ export const registerUser = async (
     logger.info("Token exchange completed successfully");
 
     logger.info({ email }, "Generating email verification link");
-    await generateEmailVerificationLink(email);
+    await generateEmailVerificationLink(email, userRecord.uid);
     logger.info({ email }, "Email verification link generated and sent");
 
     return {
@@ -166,7 +166,16 @@ export const verifyEmailToken = async (token: string): Promise<boolean> => {
     const verifiedToken = jwt.verify(token, key) as { email: string };
 
     if (verifiedToken && verifiedToken.email === email) {
-      await adminAuth().updateUser(email, { emailVerified: true });
+      logger.debug({ email }, "Email verified successfully");
+
+      const uid = keyDoc.data()?.uid;
+      if (!uid) {
+        logger.error({ email }, "User UID not found in verification data");
+        return false;
+      }
+
+      await adminAuth().updateUser(uid, { emailVerified: true });
+      logger.debug({ email }, "User email verified in Firebase");
 
       await keyDoc.ref.delete();
 
@@ -325,8 +334,21 @@ async function refreshIdToken(token: string): Promise<any> {
   }
 }
 
-async function generateEmailVerificationLink(email: string): Promise<void> {
+async function generateEmailVerificationLink(
+  email: string,
+  uid?: string
+): Promise<void> {
   try {
+    let userUid = uid;
+    if (!userUid) {
+      const userRecord = await adminAuth().getUserByEmail(email);
+      userUid = userRecord.uid;
+      logger.info(
+        { email, uid: userUid },
+        "Retrieved user UID for verification"
+      );
+    }
+
     const key = [...Array(16)]
       .map(() => Math.random().toString(36).charAt(2))
       .join("");
@@ -340,6 +362,7 @@ async function generateEmailVerificationLink(email: string): Promise<void> {
     await firestore().collection("verify-email-keys").doc(email).set({
       key,
       createdAt: new Date(),
+      uid: userUid,
     });
 
     logger.info({ email }, "Stored verification key in Firestore");

@@ -6,7 +6,13 @@ import {
   UserCredentialsSchema,
   PasswordResetSchema,
   EmailVerificationSchema,
-} from "../models/AuthUser";
+  EmailVerificationTokenSchema,
+  RefreshTokenSchema,
+  StandardMessageResponseSchema,
+  VerificationResponseSchema,
+  HealthCheckResponseSchema,
+  ErrorResponseSchema,
+} from "../models/AuthSchemas";
 
 const authRoutes = async (
   fastify: FastifyInstance,
@@ -18,14 +24,7 @@ const authRoutes = async (
         200: {
           type: "object",
           properties: {
-            data: {
-              type: "object",
-              properties: {
-                status: { type: "string" },
-                uptime: { type: "number" },
-                timestamp: { type: "number" },
-              },
-            },
+            data: HealthCheckResponseSchema,
           },
         },
       },
@@ -43,6 +42,18 @@ const authRoutes = async (
             data: AuthResponseSchema,
           },
         },
+        400: {
+          type: "object",
+          properties: {
+            error: ErrorResponseSchema,
+          },
+        },
+        409: {
+          type: "object",
+          properties: {
+            error: ErrorResponseSchema,
+          },
+        },
       },
     },
     handler: authController.register,
@@ -58,6 +69,24 @@ const authRoutes = async (
             data: AuthResponseSchema,
           },
         },
+        400: {
+          type: "object",
+          properties: {
+            error: ErrorResponseSchema,
+          },
+        },
+        401: {
+          type: "object",
+          properties: {
+            error: ErrorResponseSchema,
+          },
+        },
+        403: {
+          type: "object",
+          properties: {
+            error: ErrorResponseSchema,
+          },
+        },
       },
     },
     handler: authController.login,
@@ -70,12 +99,13 @@ const authRoutes = async (
         200: {
           type: "object",
           properties: {
-            data: {
-              type: "object",
-              properties: {
-                message: { type: "string" },
-              },
-            },
+            data: StandardMessageResponseSchema,
+          },
+        },
+        400: {
+          type: "object",
+          properties: {
+            error: ErrorResponseSchema,
           },
         },
       },
@@ -90,12 +120,13 @@ const authRoutes = async (
         200: {
           type: "object",
           properties: {
-            data: {
-              type: "object",
-              properties: {
-                message: { type: "string" },
-              },
-            },
+            data: StandardMessageResponseSchema,
+          },
+        },
+        400: {
+          type: "object",
+          properties: {
+            error: ErrorResponseSchema,
           },
         },
       },
@@ -103,20 +134,47 @@ const authRoutes = async (
     handler: authController.resendVerificationEmail,
   });
 
+  fastify.post("/verify-email", {
+    schema: {
+      body: EmailVerificationTokenSchema,
+      response: {
+        200: {
+          type: "object",
+          properties: {
+            data: VerificationResponseSchema,
+          },
+        },
+        400: {
+          type: "object",
+          properties: {
+            error: ErrorResponseSchema,
+          },
+        },
+      },
+    },
+    handler: authController.verifyEmail,
+  });
+
   fastify.post("/refresh-token", {
     schema: {
-      body: {
-        type: "object",
-        properties: {
-          refreshToken: { type: "string" },
-        },
-        required: ["refreshToken"],
-      },
+      body: RefreshTokenSchema,
       response: {
         200: {
           type: "object",
           properties: {
             data: AuthResponseSchema,
+          },
+        },
+        401: {
+          type: "object",
+          properties: {
+            error: ErrorResponseSchema,
+          },
+        },
+        403: {
+          type: "object",
+          properties: {
+            error: ErrorResponseSchema,
           },
         },
       },
