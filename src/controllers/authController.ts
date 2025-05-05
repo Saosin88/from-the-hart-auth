@@ -1,6 +1,11 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import * as authService from "../services/authService";
 import { logger } from "../config/logger";
+import {
+  validatePassword,
+  getPasswordErrorMessage,
+  validateEmail,
+} from "../utils/validator";
 
 export const checkHealth = async (
   request: FastifyRequest,
@@ -23,6 +28,24 @@ export const register = async (
 ) => {
   try {
     const { email, password } = request.body;
+
+    const emailValidationResult = validateEmail(email);
+    if (!emailValidationResult.isValid) {
+      return reply.code(400).send({
+        error: {
+          message: emailValidationResult.error,
+        },
+      });
+    }
+
+    const validationResult = validatePassword(password);
+    if (!validationResult.isValid) {
+      return reply.code(400).send({
+        error: {
+          message: getPasswordErrorMessage(validationResult.errors),
+        },
+      });
+    }
 
     const authResponse = await authService.registerUser(email, password);
     return reply.code(201).send({ data: authResponse });
@@ -64,6 +87,16 @@ export const login = async (
 ) => {
   try {
     const { email, password } = request.body;
+
+    const emailValidationResult = validateEmail(email);
+    if (!emailValidationResult.isValid) {
+      return reply.code(400).send({
+        error: {
+          message: emailValidationResult.error,
+        },
+      });
+    }
+
     const authResponse = await authService.authenticateUser(email, password);
 
     if (!authResponse) {
@@ -107,6 +140,16 @@ export const forgotPassword = async (
 ) => {
   try {
     const { email } = request.body;
+
+    const emailValidationResult = validateEmail(email);
+    if (!emailValidationResult.isValid) {
+      return reply.code(400).send({
+        error: {
+          message: emailValidationResult.error,
+        },
+      });
+    }
+
     await authService.forgotPassword(email);
 
     return reply.code(200).send({
@@ -134,6 +177,16 @@ export const resendVerificationEmail = async (
 ) => {
   try {
     const { email } = request.body;
+
+    const emailValidationResult = validateEmail(email);
+    if (!emailValidationResult.isValid) {
+      return reply.code(400).send({
+        error: {
+          message: emailValidationResult.error,
+        },
+      });
+    }
+
     await authService.resendVerificationEmail(email);
 
     return reply.code(200).send({
@@ -252,10 +305,11 @@ export const resetPassword = async (
         .send({ error: { message: "Reset token is required" } });
     }
 
-    if (!password || password.length < 6) {
+    const validationResult = validatePassword(password);
+    if (!validationResult.isValid) {
       return reply.code(400).send({
         error: {
-          message: "A strong password is required (minimum 6 characters)",
+          message: getPasswordErrorMessage(validationResult.errors),
         },
       });
     }

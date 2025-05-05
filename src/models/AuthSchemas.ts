@@ -8,34 +8,40 @@ export const AuthResponseSchema = Type.Object({
 export type AuthResponse = Static<typeof AuthResponseSchema>;
 
 export const UserCredentialsSchema = Type.Object({
-  email: Type.String({ format: "email" }),
+  email: Type.String(),
   password: Type.String(),
 });
 
 export type UserCredentials = Static<typeof UserCredentialsSchema>;
 
 export const UserRegistrationSchema = Type.Object({
-  email: Type.String({ format: "email" }),
-  password: Type.String(),
+  email: Type.String(),
+  password: Type.String({
+    description:
+      "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character",
+  }),
 });
 
 export type UserRegistration = Static<typeof UserRegistrationSchema>;
 
 export const PasswordResetSchema = Type.Object({
-  email: Type.String({ format: "email" }),
+  email: Type.String(),
 });
 
 export type PasswordReset = Static<typeof PasswordResetSchema>;
 
 export const PasswordUpdateSchema = Type.Object({
-  password: Type.String(),
+  password: Type.String({
+    description:
+      "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character",
+  }),
   token: Type.String(),
 });
 
 export type PasswordUpdate = Static<typeof PasswordUpdateSchema>;
 
 export const EmailVerificationSchema = Type.Object({
-  email: Type.String({ format: "email" }),
+  email: Type.String(),
 });
 
 export type EmailVerification = Static<typeof EmailVerificationSchema>;
