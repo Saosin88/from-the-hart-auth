@@ -80,7 +80,7 @@ resource "google_cloud_run_service" "from_the_hart_auth" {
     metadata {
       annotations = {
         "autoscaling.knative.dev/minScale"         = "0"
-        "autoscaling.knative.dev/maxScale"         = "2"
+        "autoscaling.knative.dev/maxScale"         = "1"
         "run.googleapis.com/execution-environment" = "gen2"
         "run.googleapis.com/startup-cpu-boost"     = "true"
       }
