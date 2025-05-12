@@ -390,13 +390,13 @@ export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
       await authService.invalidateUserTokens(idToken);
     }
 
-    reply.clearCookie("refresh_token", {
-      domain: ".fromthehart.tech",
-      path: "/auth/refresh-token",
-      secure: true,
-      httpOnly: true,
-      sameSite: "none",
-    });
+    // reply.clearCookie("refresh_token", {
+    //   domain: ".fromthehart.tech",
+    //   path: "/auth/refresh-token",
+    //   secure: true,
+    //   httpOnly: true,
+    //   sameSite: "none",
+    // });
 
     return reply.code(200).send({
       data: {
@@ -407,13 +407,13 @@ export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
   } catch (error) {
     logger.error({ error }, "Logout error");
 
-    reply.clearCookie("refresh_token", {
-      domain: ".fromthehart.tech",
-      path: "/auth/refresh-token",
-      secure: true,
-      httpOnly: true,
-      sameSite: "none",
-    });
+    // reply.clearCookie("refresh_token", {
+    //   domain: ".fromthehart.tech",
+    //   path: "/auth/refresh-token",
+    //   secure: true,
+    //   httpOnly: true,
+    //   sameSite: "none",
+    // });
 
     return reply.code(200).send({
       data: {
