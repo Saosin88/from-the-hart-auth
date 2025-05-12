@@ -381,3 +381,45 @@ export const resetPassword = async (
     });
   }
 };
+
+export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const idToken = request.headers["authorization"]?.split(" ")[1];
+
+    if (idToken) {
+      await authService.invalidateUserTokens(idToken);
+    }
+
+    reply.clearCookie("refresh_token", {
+      domain: ".fromthehart.tech",
+      path: "/auth/refresh-token",
+      secure: true,
+      httpOnly: true,
+      sameSite: "none",
+    });
+
+    return reply.code(200).send({
+      data: {
+        success: true,
+        message: "Logged out successfully",
+      },
+    });
+  } catch (error) {
+    logger.error({ error }, "Logout error");
+
+    reply.clearCookie("refresh_token", {
+      domain: ".fromthehart.tech",
+      path: "/auth/refresh-token",
+      secure: true,
+      httpOnly: true,
+      sameSite: "none",
+    });
+
+    return reply.code(200).send({
+      data: {
+        success: true,
+        message: "Logged out successfully",
+      },
+    });
+  }
+};

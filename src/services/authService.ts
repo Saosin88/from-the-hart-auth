@@ -143,6 +143,28 @@ export const refreshUserToken = async (
   }
 };
 
+export const invalidateUserTokens = async (
+  idToken: string
+): Promise<boolean> => {
+  try {
+    const decodedToken = await adminAuth().verifyIdToken(idToken);
+    const uid = decodedToken.uid;
+
+    if (!uid) {
+      logger.error("No uid found in token");
+      return false;
+    }
+
+    await adminAuth().revokeRefreshTokens(uid);
+    logger.info({ uid }, "Successfully revoked all refresh tokens for user");
+
+    return true;
+  } catch (error) {
+    logger.error({ error }, "Error invalidating user tokens");
+    return false;
+  }
+};
+
 export const verifyEmailToken = async (token: string): Promise<boolean> => {
   try {
     const decoded = jwt.decode(token) as { email?: string };

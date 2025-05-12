@@ -69,6 +69,13 @@ export const VerificationResponseSchema = Type.Object({
 
 export type VerificationResponse = Static<typeof VerificationResponseSchema>;
 
+export const LogoutSuccessResponseSchema = Type.Object({
+  success: Type.Boolean(),
+  message: Type.String(),
+});
+
+export type LogoutSuccessResponse = Static<typeof LogoutSuccessResponseSchema>;
+
 export const ErrorResponseSchema = Type.Object({
   message: Type.String(),
 });

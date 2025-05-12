@@ -12,6 +12,7 @@ import {
   HealthCheckResponseSchema,
   ErrorResponseSchema,
   PasswordUpdateSchema,
+  LogoutSuccessResponseSchema,
 } from "../models/AuthSchemas";
 
 const authRoutes = async (
@@ -200,6 +201,20 @@ const authRoutes = async (
       },
     },
     handler: authController.refreshToken,
+  });
+
+  fastify.get("/logout", {
+    schema: {
+      response: {
+        200: {
+          type: "object",
+          properties: {
+            data: LogoutSuccessResponseSchema,
+          },
+        },
+      },
+    },
+    handler: authController.logout,
   });
 };
 
