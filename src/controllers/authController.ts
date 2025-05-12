@@ -113,7 +113,7 @@ export const login = async (
       const cookieExpirationInSeconds = 30 * 24 * 60 * 60; // 30 days
 
       reply.setCookie("refresh_token", authResponse.refreshToken, {
-        domain: "api.fromthehart.tech",
+        domain: ".fromthehart.tech",
         path: "/auth/refresh-token",
         secure: true,
         httpOnly: true,
