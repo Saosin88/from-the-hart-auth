@@ -50,7 +50,8 @@ export const registerUser = async (
 
 export const authenticateUser = async (
   email: string,
-  password: string
+  password: string,
+  returnRefreshToken: boolean = false
 ): Promise<AuthResponse | null> => {
   try {
     const signInResult = await signInWithEmailPassword(email, password);
@@ -61,7 +62,9 @@ export const authenticateUser = async (
 
     return {
       idToken: signInResult.idToken,
-      refreshToken: signInResult.refreshToken,
+      ...(returnRefreshToken
+        ? { refreshToken: signInResult.refreshToken }
+        : {}),
     };
   } catch (error) {
     logger.error({ error, email }, "Error authenticating user");

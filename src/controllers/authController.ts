@@ -81,12 +81,12 @@ export const register = async (
 
 export const login = async (
   request: FastifyRequest<{
-    Body: { email: string; password: string };
+    Body: { email: string; password: string; returnRefreshToken?: boolean };
   }>,
   reply: FastifyReply
 ) => {
   try {
-    const { email, password } = request.body;
+    const { email, password, returnRefreshToken = false } = request.body;
 
     const emailValidationResult = validateEmail(email);
     if (!emailValidationResult.isValid) {
@@ -97,12 +97,29 @@ export const login = async (
       });
     }
 
-    const authResponse = await authService.authenticateUser(email, password);
+    const authResponse = await authService.authenticateUser(
+      email,
+      password,
+      returnRefreshToken
+    );
 
     if (!authResponse) {
       return reply
         .code(401)
         .send({ error: { message: "Invalid credentials" } });
+    }
+
+    if (authResponse.refreshToken) {
+      const cookieExpirationInSeconds = 30 * 24 * 60 * 60; // 30 days
+
+      reply.setCookie("refresh_token", authResponse.refreshToken, {
+        domain: "api.fromthehart.tech",
+        path: "/auth/refresh-token",
+        secure: true,
+        httpOnly: true,
+        sameSite: "none",
+        maxAge: cookieExpirationInSeconds,
+      });
     }
 
     return reply.code(200).send({ data: authResponse });

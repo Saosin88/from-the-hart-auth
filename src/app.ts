@@ -1,4 +1,5 @@
 import fastify, { FastifyInstance } from "fastify";
+import cookie from "@fastify/cookie";
 import { registerSwagger } from "./config/swagger";
 import { fastifyLogger } from "./config/logger";
 import authRoutes from "./routes/auth";
@@ -9,6 +10,8 @@ export function buildApp(): FastifyInstance {
   const app = fastify({
     logger: fastifyLogger,
   });
+
+  app.register(cookie);
 
   initializeFirebaseAdmin();
   setTimeout(() => {

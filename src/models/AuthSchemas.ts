@@ -2,7 +2,7 @@ import { Type, Static } from "@fastify/type-provider-typebox";
 
 export const AuthResponseSchema = Type.Object({
   idToken: Type.String(),
-  refreshToken: Type.String(),
+  refreshToken: Type.Optional(Type.String()),
 });
 
 export type AuthResponse = Static<typeof AuthResponseSchema>;
@@ -10,6 +10,7 @@ export type AuthResponse = Static<typeof AuthResponseSchema>;
 export const UserCredentialsSchema = Type.Object({
   email: Type.String(),
   password: Type.String(),
+  returnRefreshToken: Type.Optional(Type.Boolean()),
 });
 
 export type UserCredentials = Static<typeof UserCredentialsSchema>;
