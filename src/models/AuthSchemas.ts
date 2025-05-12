@@ -55,12 +55,6 @@ export type EmailVerificationToken = Static<
   typeof EmailVerificationTokenSchema
 >;
 
-export const RefreshTokenSchema = Type.Object({
-  refreshToken: Type.String(),
-});
-
-export type RefreshToken = Static<typeof RefreshTokenSchema>;
-
 export const StandardMessageResponseSchema = Type.Object({
   message: Type.String(),
 });

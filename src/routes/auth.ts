@@ -7,7 +7,6 @@ import {
   PasswordResetSchema,
   EmailVerificationSchema,
   EmailVerificationTokenSchema,
-  RefreshTokenSchema,
   StandardMessageResponseSchema,
   VerificationResponseSchema,
   HealthCheckResponseSchema,
@@ -177,9 +176,8 @@ const authRoutes = async (
     handler: authController.resetPassword,
   });
 
-  fastify.post("/refresh-token", {
+  fastify.get("/refresh-token", {
     schema: {
-      body: RefreshTokenSchema,
       response: {
         200: {
           type: "object",

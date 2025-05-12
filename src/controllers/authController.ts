@@ -120,6 +120,8 @@ export const login = async (
         sameSite: "none",
         maxAge: cookieExpirationInSeconds,
       });
+
+      delete authResponse.refreshToken;
     }
 
     return reply.code(200).send({ data: authResponse });
@@ -268,13 +270,18 @@ export const verifyEmail = async (
 };
 
 export const refreshToken = async (
-  request: FastifyRequest<{
-    Body: { refreshToken: string };
-  }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) => {
   try {
-    const { refreshToken } = request.body;
+    const refreshToken = request.cookies.refresh_token;
+
+    if (!refreshToken) {
+      return reply
+        .code(401)
+        .send({ error: { message: "No refresh token provided" } });
+    }
+
     const authResponse = await authService.refreshUserToken(refreshToken);
 
     if (!authResponse) {
@@ -283,6 +290,20 @@ export const refreshToken = async (
         .send({ error: { message: "Invalid or expired refresh token" } });
     }
 
+    if (authResponse.refreshToken) {
+      const cookieExpirationInSeconds = 30 * 24 * 60 * 60; // 30 days
+
+      reply.setCookie("refresh_token", authResponse.refreshToken, {
+        domain: ".fromthehart.tech",
+        path: "/auth/refresh-token",
+        secure: true,
+        httpOnly: true,
+        sameSite: "none",
+        maxAge: cookieExpirationInSeconds,
+      });
+    }
+
+    delete authResponse.refreshToken;
     return reply.code(200).send({ data: authResponse });
   } catch (error) {
     logger.error({ error }, "Token refresh error");
