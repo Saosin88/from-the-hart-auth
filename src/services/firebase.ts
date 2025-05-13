@@ -13,7 +13,6 @@ export const initializeFirebaseAdmin = (): void => {
       admin.firestore().settings({
         databaseId: "auth",
       });
-      logger.info("Firebase Admin SDK initialized");
     }
   } catch (error) {
     logger.error({ error }, "Failed to initialize Firebase Admin SDK");

@@ -10,25 +10,17 @@ export const registerUser = async (
   password: string
 ): Promise<AuthResponse> => {
   try {
-    logger.info({ email }, "Creating user account");
     const userRecord = await adminAuth().createUser({
       email,
       password,
       emailVerified: false,
     });
-    logger.info({ uid: userRecord.uid }, "User account created successfully");
 
-    logger.info({ uid: userRecord.uid }, "Creating custom token");
     const customToken = await adminAuth().createCustomToken(userRecord.uid);
-    logger.info("Custom token created successfully");
 
-    logger.info("Exchanging custom token for ID token");
     const idTokens = await exchangeCustomTokenForIdToken(customToken);
-    logger.info("Token exchange completed successfully");
 
-    logger.info({ email }, "Generating email verification link");
     await generateEmailVerificationLink(email, userRecord.uid);
-    logger.info({ email }, "Email verification link generated and sent");
 
     return {
       idToken: idTokens.idToken,
@@ -76,7 +68,6 @@ export const forgotPassword = async (email: string): Promise<boolean> => {
   try {
     await generatePasswordResetLink(email);
 
-    logger.info({ email }, "Password reset email sent");
     return true;
   } catch (error) {
     if ((error as any).code === "auth/user-not-found") {
@@ -100,7 +91,6 @@ export const resendVerificationEmail = async (
 
     await generateEmailVerificationLink(email);
 
-    logger.info({ email }, "Verification email sent");
     return true;
   } catch (error) {
     if ((error as any).code === "auth/user-not-found") {
@@ -109,59 +99,6 @@ export const resendVerificationEmail = async (
 
     logger.error({ error, email }, "Error sending verification email");
     throw error;
-  }
-};
-
-export const verifyIdToken = async (idToken: string): Promise<boolean> => {
-  try {
-    await adminAuth().verifyIdToken(idToken);
-
-    return true;
-  } catch (error) {
-    logger.error({ error }, "Error verifying ID token");
-    return false;
-  }
-};
-
-export const refreshUserToken = async (
-  refreshToken: string
-): Promise<AuthResponse | null> => {
-  try {
-    const refreshedTokens = await refreshIdToken(refreshToken);
-
-    if (!refreshedTokens) {
-      return null;
-    }
-
-    return {
-      idToken: refreshedTokens.idToken,
-      refreshToken: refreshedTokens.refreshToken,
-    };
-  } catch (error) {
-    logger.error({ error }, "Error refreshing user token");
-    return null;
-  }
-};
-
-export const invalidateUserTokens = async (
-  idToken: string
-): Promise<boolean> => {
-  try {
-    const decodedToken = await adminAuth().verifyIdToken(idToken);
-    const uid = decodedToken.uid;
-
-    if (!uid) {
-      logger.error("No uid found in token");
-      return false;
-    }
-
-    await adminAuth().revokeRefreshTokens(uid);
-    logger.info({ uid }, "Successfully revoked all refresh tokens for user");
-
-    return true;
-  } catch (error) {
-    logger.error({ error }, "Error invalidating user tokens");
-    return false;
   }
 };
 
@@ -191,8 +128,6 @@ export const verifyEmailToken = async (token: string): Promise<boolean> => {
     const verifiedToken = jwt.verify(token, key) as { email: string };
 
     if (verifiedToken && verifiedToken.email === email) {
-      logger.debug({ email }, "Email verified successfully");
-
       const uid = keyDoc.data()?.uid;
       if (!uid) {
         logger.error({ email }, "User UID not found in verification data");
@@ -200,7 +135,6 @@ export const verifyEmailToken = async (token: string): Promise<boolean> => {
       }
 
       await adminAuth().updateUser(uid, { emailVerified: true });
-      logger.debug({ email }, "User email verified in Firebase");
 
       await keyDoc.ref.delete();
 
@@ -247,8 +181,6 @@ export const verifyTokenAndUpdatePassword = async (
     const verifiedToken = jwt.verify(token, key) as { email: string };
 
     if (verifiedToken && verifiedToken.email === email) {
-      logger.debug({ email }, "Password reset token verified successfully");
-
       const uid = keyDoc.data()?.uid;
       if (!uid) {
         logger.error({ email }, "User UID not found in password reset data");
@@ -256,7 +188,6 @@ export const verifyTokenAndUpdatePassword = async (
       }
 
       await adminAuth().updateUser(uid, { password: newPassword });
-      logger.debug({ email }, "User password updated successfully");
 
       await keyDoc.ref.delete();
 
@@ -270,6 +201,58 @@ export const verifyTokenAndUpdatePassword = async (
     } else {
       logger.error({ error }, "Error verifying password reset token");
     }
+    return false;
+  }
+};
+
+export const refreshUserToken = async (
+  refreshToken: string
+): Promise<AuthResponse | null> => {
+  try {
+    const refreshedTokens = await refreshIdToken(refreshToken);
+
+    if (!refreshedTokens) {
+      return null;
+    }
+
+    return {
+      idToken: refreshedTokens.idToken,
+      refreshToken: refreshedTokens.refreshToken,
+    };
+  } catch (error) {
+    logger.error({ error }, "Error refreshing user token");
+    return null;
+  }
+};
+
+export const verifyIdToken = async (idToken: string): Promise<boolean> => {
+  try {
+    await adminAuth().verifyIdToken(idToken);
+
+    return true;
+  } catch (error) {
+    logger.error({ error }, "Error verifying ID token");
+    return false;
+  }
+};
+
+export const invalidateUserTokens = async (
+  idToken: string
+): Promise<boolean> => {
+  try {
+    const decodedToken = await adminAuth().verifyIdToken(idToken);
+    const uid = decodedToken.uid;
+
+    if (!uid) {
+      logger.error("No uid found in token");
+      return false;
+    }
+
+    await adminAuth().revokeRefreshTokens(uid);
+
+    return true;
+  } catch (error) {
+    logger.error({ error }, "Error invalidating user tokens");
     return false;
   }
 };
@@ -434,11 +417,7 @@ async function generateEmailVerificationLink(
       .map(() => Math.random().toString(36).charAt(2))
       .join("");
 
-    logger.info({ key }, "Generated verification key");
-
     const token = jwt.sign({ email }, key, { expiresIn: "24h" });
-
-    logger.info({ token }, "Generated verification token");
 
     await firestore().collection("verify-email-keys").doc(email).set({
       key,
@@ -446,15 +425,9 @@ async function generateEmailVerificationLink(
       uid: userUid,
     });
 
-    logger.info({ email }, "Stored verification key in Firestore");
-
     const link = `${config.websiteAuthBaseUrl}/verify-email?token=${token}`;
 
-    logger.info({ link }, "Generated verification link");
-
     await sendVerificationEmail(email, link);
-
-    logger.info({ email }, "Verification email sent");
   } catch (error) {
     logger.error({ error, email }, "Error sending verification email");
     throw error;
@@ -470,21 +443,13 @@ async function generatePasswordResetLink(
     if (!userUid) {
       const userRecord = await adminAuth().getUserByEmail(email);
       userUid = userRecord.uid;
-      logger.info(
-        { email, uid: userUid },
-        "Retrieved user UID for password reset"
-      );
     }
 
     const key = [...Array(16)]
       .map(() => Math.random().toString(36).charAt(2))
       .join("");
 
-    logger.info({ key }, "Generated password reset key");
-
     const token = jwt.sign({ email }, key, { expiresIn: "1h" });
-
-    logger.info({ token }, "Generated password reset token");
 
     await firestore().collection("forgot-password-keys").doc(email).set({
       key,
@@ -492,15 +457,9 @@ async function generatePasswordResetLink(
       uid: userUid,
     });
 
-    logger.info({ email }, "Stored password reset key in Firestore");
-
     const link = `${config.websiteAuthBaseUrl}/reset-password?token=${token}`;
 
-    logger.info({ link }, "Generated password reset link");
-
     await sendPasswordResetEmail(email, link);
-
-    logger.info({ email }, "Password reset email sent");
   } catch (error) {
     logger.error({ error, email }, "Error sending password reset email");
     throw error;
