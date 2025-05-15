@@ -13,6 +13,8 @@ import {
   ErrorResponseSchema,
   PasswordUpdateSchema,
   LogoutSuccessResponseSchema,
+  AccessTokenSchema,
+  AccessTokenVerificationResponseSchema,
 } from "../models/AuthSchemas";
 
 const authRoutes = async (
@@ -215,6 +217,33 @@ const authRoutes = async (
       },
     },
     handler: authController.logout,
+  });
+
+  fastify.post("/verify-access-token", {
+    schema: {
+      body: AccessTokenSchema,
+      response: {
+        200: {
+          type: "object",
+          properties: {
+            data: AccessTokenVerificationResponseSchema,
+          },
+        },
+        400: {
+          type: "object",
+          properties: {
+            error: ErrorResponseSchema,
+          },
+        },
+        500: {
+          type: "object",
+          properties: {
+            error: ErrorResponseSchema,
+          },
+        },
+      },
+    },
+    handler: authController.verifyAccessToken,
   });
 };
 

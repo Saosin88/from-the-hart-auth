@@ -423,3 +423,24 @@ export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
     });
   }
 };
+
+export const verifyAccessToken = async (
+  request: FastifyRequest<{ Body: { accessToken: string } }>,
+  reply: FastifyReply
+) => {
+  const { accessToken } = request.body;
+  if (!accessToken) {
+    return reply
+      .code(400)
+      .send({ error: { message: "Access token is required" } });
+  }
+  try {
+    const valid = await authService.verifyIdToken(accessToken);
+    return reply.code(200).send({ data: { valid } });
+  } catch (error) {
+    logger.error({ error }, "Error verifying access token");
+    return reply
+      .code(500)
+      .send({ error: { message: "Internal server error" } });
+  }
+};

@@ -89,3 +89,17 @@ export const HealthCheckResponseSchema = Type.Object({
 });
 
 export type HealthCheckResponse = Static<typeof HealthCheckResponseSchema>;
+
+export const AccessTokenSchema = Type.Object({
+  accessToken: Type.String(),
+});
+
+export type AccessToken = Static<typeof AccessTokenSchema>;
+
+export const AccessTokenVerificationResponseSchema = Type.Object({
+  valid: Type.Boolean(),
+});
+
+export type AccessTokenVerificationResponse = Static<
+  typeof AccessTokenVerificationResponseSchema
+>;
