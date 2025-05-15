@@ -144,9 +144,7 @@ resource "google_firestore_field" "forgot_password_keys_expiresAt_ttl" {
   collection  = "forgot-password-keys"
   field       = "expiresAt"
 
-  ttl_config {
-    state = "ENABLED"
-  }
+  ttl_config {}
 }
 
 resource "google_firestore_field" "verify_email_keys_expiresAt_ttl" {
@@ -155,7 +153,5 @@ resource "google_firestore_field" "verify_email_keys_expiresAt_ttl" {
   collection  = "verify-email-keys"
   field       = "expiresAt"
 
-  ttl_config {
-    state = "ENABLED"
-  }
+  ttl_config {}
 }
