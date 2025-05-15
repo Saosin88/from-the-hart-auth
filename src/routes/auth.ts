@@ -5,7 +5,6 @@ import {
   UserRegistrationSchema,
   UserCredentialsSchema,
   PasswordResetSchema,
-  EmailVerificationSchema,
   EmailVerificationTokenSchema,
   StandardMessageResponseSchema,
   VerificationResponseSchema,
@@ -116,9 +115,8 @@ const authRoutes = async (
     handler: authController.forgotPassword,
   });
 
-  fastify.post("/resend-verification", {
+  fastify.get("/resend-verification", {
     schema: {
-      body: EmailVerificationSchema,
       response: {
         200: {
           type: "object",

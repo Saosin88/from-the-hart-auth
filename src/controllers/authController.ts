@@ -6,6 +6,7 @@ import {
   getPasswordErrorMessage,
   validateEmail,
 } from "../utils/validator";
+import * as jwt from "jsonwebtoken";
 
 export const checkHealth = async (
   request: FastifyRequest,
@@ -189,13 +190,29 @@ export const forgotPassword = async (
 };
 
 export const resendVerificationEmail = async (
-  request: FastifyRequest<{
-    Body: { email: string };
-  }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) => {
   try {
-    const { email } = request.body;
+    const idToken = request.headers["authorization"]?.split(" ")[1];
+
+    if (!idToken) {
+      return reply.code(400).send({
+        error: { message: "Authorization token missing" },
+      });
+    }
+
+    const decodedToken = jwt.decode(idToken) as { email?: string } | null;
+    const email =
+      decodedToken && typeof decodedToken === "object"
+        ? decodedToken.email
+        : undefined;
+
+    if (!email) {
+      return reply.code(400).send({
+        error: { message: "Email not found in token" },
+      });
+    }
 
     const emailValidationResult = validateEmail(email);
     if (!emailValidationResult.isValid) {

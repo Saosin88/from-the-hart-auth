@@ -41,12 +41,6 @@ export const PasswordUpdateSchema = Type.Object({
 
 export type PasswordUpdate = Static<typeof PasswordUpdateSchema>;
 
-export const EmailVerificationSchema = Type.Object({
-  email: Type.String(),
-});
-
-export type EmailVerification = Static<typeof EmailVerificationSchema>;
-
 export const EmailVerificationTokenSchema = Type.Object({
   token: Type.String(),
 });
