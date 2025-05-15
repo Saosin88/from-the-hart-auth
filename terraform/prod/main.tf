@@ -130,3 +130,25 @@ resource "google_firestore_database" "tech_auth_firestore_database" {
   location_id = "africa-south1"
   type        = "FIRESTORE_NATIVE"
 }
+
+resource "google_firestore_field" "forgot_password_keys_expiresAt_ttl" {
+  project     = data.terraform_remote_state.shared.outputs.tech_prod_project_id
+  database    = google_firestore_database.tech_auth_firestore_database.name
+  collection  = "forgot-password-keys"
+  field       = "expiresAt"
+
+  ttl_config {
+    state = "ENABLED"
+  }
+}
+
+resource "google_firestore_field" "verify_email_keys_expiresAt_ttl" {
+  project     = data.terraform_remote_state.shared.outputs.tech_prod_project_id
+  database    = google_firestore_database.tech_auth_firestore_database.name
+  collection  = "verify-email-keys"
+  field       = "expiresAt"
+
+  ttl_config {
+    state = "ENABLED"
+  }
+}

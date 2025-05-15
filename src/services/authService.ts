@@ -419,9 +419,12 @@ async function generateEmailVerificationLink(
 
     const token = jwt.sign({ email }, key, { expiresIn: "24h" });
 
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
     await firestore().collection("verify-email-keys").doc(email).set({
       key,
       createdAt: new Date(),
+      expiresAt,
       uid: userUid,
     });
 
@@ -451,9 +454,12 @@ async function generatePasswordResetLink(
 
     const token = jwt.sign({ email }, key, { expiresIn: "1h" });
 
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
     await firestore().collection("forgot-password-keys").doc(email).set({
       key,
       createdAt: new Date(),
+      expiresAt,
       uid: userUid,
     });
 
