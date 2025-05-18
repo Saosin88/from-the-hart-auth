@@ -453,6 +453,7 @@ export const verifyAccessToken = async (
   }
   try {
     const valid = await authService.verifyIdToken(accessToken);
+    reply.header("Cache-Control", "public, max-age=600"); // Cache for 10 minutes
     return reply.code(200).send({ data: { valid } });
   } catch (error) {
     logger.error({ error }, "Error verifying access token");
