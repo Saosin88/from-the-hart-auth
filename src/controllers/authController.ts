@@ -48,10 +48,8 @@ export const register = async (
       });
     }
 
-    await authService.registerUser(email, password);
-    return reply
-      .code(201)
-      .send({ data: { message: "Registration successful" } });
+    const authResponse = await authService.registerUser(email, password);
+    return reply.code(201).send({ data: authResponse });
   } catch (error) {
     logger.error({ error }, "Registration error");
 

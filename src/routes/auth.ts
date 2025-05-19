@@ -3,7 +3,6 @@ import * as authController from "../controllers/authController";
 import {
   AuthResponseSchema,
   UserRegistrationSchema,
-  RegistrationResponseSchema,
   UserCredentialsSchema,
   PasswordResetSchema,
   EmailVerificationTokenSchema,
@@ -42,7 +41,7 @@ const authRoutes = async (
         201: {
           type: "object",
           properties: {
-            data: RegistrationResponseSchema,
+            data: AuthResponseSchema,
           },
         },
         400: {

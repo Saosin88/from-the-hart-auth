@@ -8,7 +8,7 @@ import * as jwt from "jsonwebtoken";
 export const registerUser = async (
   email: string,
   password: string
-): Promise<void> => {
+): Promise<AuthResponse> => {
   try {
     const userRecord = await adminAuth().createUser({
       email,
@@ -16,7 +16,16 @@ export const registerUser = async (
       emailVerified: false,
     });
 
+    const customToken = await adminAuth().createCustomToken(userRecord.uid);
+
+    const idTokens = await exchangeCustomTokenForIdToken(customToken);
+
     await generateEmailVerificationLink(email, userRecord.uid);
+
+    return {
+      idToken: idTokens.idToken,
+      refreshToken: idTokens.refreshToken,
+    };
   } catch (error) {
     logger.error(
       {
