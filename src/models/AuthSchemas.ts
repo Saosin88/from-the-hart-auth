@@ -25,6 +25,12 @@ export const UserRegistrationSchema = Type.Object({
 
 export type UserRegistration = Static<typeof UserRegistrationSchema>;
 
+export const RegistrationResponseSchema = Type.Object({
+  message: Type.String(),
+});
+
+export type RegistrationResponse = Static<typeof RegistrationResponseSchema>;
+
 export const PasswordResetSchema = Type.Object({
   email: Type.String(),
 });
