@@ -260,22 +260,9 @@ export const verifyEmail = async (
         .send({ error: { message: "Verification token is required" } });
     }
 
-    const verified = await authService.verifyEmailToken(token);
+    const authResponse = await authService.verifyEmailToken(token);
 
-    if (verified) {
-      return reply.code(200).send({
-        data: {
-          verified: true,
-          message: "Email verified successfully",
-        },
-      });
-    } else {
-      return reply.code(400).send({
-        error: {
-          message: "Invalid or expired verification token",
-        },
-      });
-    }
+    return reply.code(201).send({ data: authResponse });
   } catch (error) {
     logger.error({ error }, "Email verification error");
     return reply.code(400).send({
