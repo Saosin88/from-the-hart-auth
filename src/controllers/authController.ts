@@ -120,6 +120,7 @@ export const login = async (
         httpOnly: true,
         sameSite: "none",
         maxAge: cookieExpirationInSeconds,
+        priority: "high",
       });
 
       delete authResponse.refreshToken;
@@ -317,6 +318,7 @@ export const refreshToken = async (
         httpOnly: true,
         sameSite: "none",
         maxAge: cookieExpirationInSeconds,
+        priority: "high",
       });
     }
 
@@ -413,6 +415,7 @@ export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
       secure: true,
       httpOnly: true,
       sameSite: "none",
+      priority: "low",
     });
 
     return reply.code(200).send({
@@ -430,6 +433,7 @@ export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
       secure: true,
       httpOnly: true,
       sameSite: "none",
+      priority: "low",
     });
 
     return reply.code(200).send({
