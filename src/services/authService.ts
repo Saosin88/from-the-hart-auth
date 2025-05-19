@@ -24,7 +24,6 @@ export const registerUser = async (
 
     return {
       idToken: idTokens.idToken,
-      refreshToken: idTokens.refreshToken,
     };
   } catch (error) {
     logger.error(
