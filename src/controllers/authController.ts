@@ -314,6 +314,15 @@ export const refreshToken = async (
   } catch (error) {
     logger.error({ error }, "Token refresh error");
 
+    reply.clearCookie("refresh_token", {
+      domain: ".fromthehart.tech",
+      path: "/auth/refresh-token",
+      secure: true,
+      httpOnly: true,
+      sameSite: "none",
+      priority: "low",
+    });
+
     const firebaseError = error as any;
     if (firebaseError.code) {
       switch (firebaseError.code) {
