@@ -399,11 +399,11 @@ export const resetPassword = async (
 
 export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
-    const idToken = request.headers["authorization"]?.split(" ")[1];
+    // const idToken = request.headers["authorization"]?.split(" ")[1];
 
-    if (idToken) {
-      await authService.invalidateUserTokens(idToken);
-    }
+    // if (idToken) {
+    //   await authService.invalidateUserTokens(idToken);
+    // }
 
     reply.clearCookie("refresh_token", {
       domain: ".fromthehart.tech",
