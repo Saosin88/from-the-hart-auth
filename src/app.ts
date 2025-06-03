@@ -14,13 +14,32 @@ export function buildApp(): FastifyInstance {
   app.register(cookie);
 
   initializeFirebaseAdmin();
-  setTimeout(() => {
-    initializeSmtp();
-  }, 1000);
+
+  if (process.env.NODE_ENV !== "test") {
+    setTimeout(() => {
+      initializeSmtp();
+    }, 1000);
+  }
 
   registerSwagger(app);
 
   app.register(authRoutes, { prefix: "/auth" });
+
+  app.setErrorHandler((error, request, reply) => {
+    if (error.validation) {
+      reply.status(400).send({
+        error: {
+          message: error.message || "Validation error",
+        },
+      });
+    } else {
+      reply.status(error.statusCode || 500).send({
+        error: {
+          message: error.message || "Internal server error",
+        },
+      });
+    }
+  });
 
   return app;
 }
