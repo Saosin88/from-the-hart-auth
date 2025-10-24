@@ -205,7 +205,6 @@ from-the-hart-auth/
 ├── tests/                  # Test files
 │   └── routes/             # API route tests
 ├── Dockerfile              # Container build configuration
-├── jest.config.ts          # Jest testing configuration
 ├── package.json            # Project dependencies and scripts
 ├── tsconfig.json           # TypeScript configuration
 └── README.md               # Project documentation

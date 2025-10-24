@@ -13,7 +13,6 @@ afterAll(async () => {
   await app.close();
 });
 
-// Jest tests for /auth/health endpoint
 describe("/auth/health", () => {
   beforeEach(() => {
     vi.clearAllMocks();

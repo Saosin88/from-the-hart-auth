@@ -17,7 +17,6 @@ afterAll(async () => {
   await app.close();
 });
 
-// Jest tests for /auth/login endpoint
 describe("/auth/login", () => {
   beforeEach(() => {
     vi.clearAllMocks();

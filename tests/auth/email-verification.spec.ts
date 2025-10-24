@@ -18,7 +18,6 @@ afterAll(async () => {
   await app.close();
 });
 
-// Jest tests for /auth/verify-email and /auth/resend-verification endpoints
 describe("/auth/verify-email", () => {
   beforeEach(() => {
     vi.clearAllMocks();
