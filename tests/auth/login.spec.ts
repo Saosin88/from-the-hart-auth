@@ -1,8 +1,10 @@
 import request from "supertest";
 import { buildApp } from "../../src/app";
 import * as authService from "../../src/services/authService";
+import { vi } from "vitest";
+import type { Mock } from "vitest";
 
-jest.mock("../../src/services/authService");
+vi.mock("../../src/services/authService");
 
 const app = buildApp();
 let server: any;
@@ -18,11 +20,11 @@ afterAll(async () => {
 // Jest tests for /auth/login endpoint
 describe("/auth/login", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("should login successfully with correct credentials", async () => {
-    (authService.authenticateUser as jest.Mock).mockResolvedValue({
+    (authService.authenticateUser as Mock).mockResolvedValue({
       idToken: "mock-token",
     });
     const res = await request(server)
@@ -33,7 +35,7 @@ describe("/auth/login", () => {
   });
 
   it("should fail with wrong password", async () => {
-    (authService.authenticateUser as jest.Mock).mockResolvedValue(null);
+    (authService.authenticateUser as Mock).mockResolvedValue(null);
     const res = await request(server)
       .post("/auth/login")
       .send({ email: "testuser@example.com", password: "WrongPassword" });
@@ -42,7 +44,7 @@ describe("/auth/login", () => {
   });
 
   it("should fail for non-existent user", async () => {
-    (authService.authenticateUser as jest.Mock).mockResolvedValue(null);
+    (authService.authenticateUser as Mock).mockResolvedValue(null);
     const res = await request(server)
       .post("/auth/login")
       .send({ email: "nouser@example.com", password: "StrongPassw0rd!" });
@@ -51,7 +53,7 @@ describe("/auth/login", () => {
   });
 
   it("should fail for disabled user", async () => {
-    (authService.authenticateUser as jest.Mock).mockImplementation(() => {
+    (authService.authenticateUser as Mock).mockImplementation(() => {
       const err: any = new Error("Account has been disabled");
       err.code = "auth/user-disabled";
       throw err;

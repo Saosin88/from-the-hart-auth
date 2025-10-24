@@ -6,6 +6,10 @@ import { FieldValue } from "firebase-admin/firestore";
 export const initializeFirebaseAdmin = (): void => {
   try {
     if (admin.apps.length === 0) {
+      if (!config.firebaseConfig.projectId) {
+        throw new Error("Firebase projectId is not configured");
+      }
+      
       admin.initializeApp({
         projectId: config.firebaseConfig.projectId,
       });

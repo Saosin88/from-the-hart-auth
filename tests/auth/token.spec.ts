@@ -1,8 +1,10 @@
 import request from "supertest";
 import { buildApp } from "../../src/app";
 import * as authService from "../../src/services/authService";
+import { vi } from "vitest";
+import type { Mock } from "vitest";
 
-jest.mock("../../src/services/authService");
+vi.mock("../../src/services/authService");
 
 const app = buildApp();
 let server: any;
@@ -17,11 +19,11 @@ afterAll(async () => {
 
 describe("/auth/refresh-token", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("should refresh token with valid refresh token", async () => {
-    (authService.refreshUserToken as jest.Mock).mockResolvedValue({
+    (authService.refreshUserToken as Mock).mockResolvedValue({
       idToken: "mock-token",
       refreshToken: "mock-refresh",
     });
@@ -33,7 +35,7 @@ describe("/auth/refresh-token", () => {
   });
 
   it("should fail with invalid or expired refresh token", async () => {
-    (authService.refreshUserToken as jest.Mock).mockResolvedValue(null);
+    (authService.refreshUserToken as Mock).mockResolvedValue(null);
     const res = await request(server)
       .get("/auth/refresh-token")
       .set("Cookie", ["refresh_token=invalid-token"]);
@@ -44,11 +46,11 @@ describe("/auth/refresh-token", () => {
 
 describe("/auth/verify-access-token", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("should verify a valid access token", async () => {
-    (authService.verifyIdToken as jest.Mock).mockResolvedValue(true);
+    (authService.verifyIdToken as Mock).mockResolvedValue(true);
     const res = await request(server)
       .post("/auth/verify-access-token")
       .send({ accessToken: "valid-access-token" });
@@ -67,7 +69,7 @@ describe("/auth/verify-access-token", () => {
   });
 
   it("should fail with invalid access token", async () => {
-    (authService.verifyIdToken as jest.Mock).mockImplementation(() => {
+    (authService.verifyIdToken as Mock).mockImplementation(() => {
       throw new Error("Invalid token");
     });
     const res = await request(server)

@@ -27,15 +27,15 @@ jobs:
         run: npm ci
 
       - name: Run tests
-        run: npm test -- --ci --reporters=default --reporters=jest-junit
+        run: npm test
 
       - name: Test Report
         uses: dorny/test-reporter@v2
         if: success() || failure()
         with:
-          name: Jest Tests
+          name: Vitest Tests
           path: junit.xml
-          reporter: jest-junit
+          reporter: java-junit
 
       - name: Google Auth
         uses: google-github-actions/auth@v2

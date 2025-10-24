@@ -1,4 +1,4 @@
-import { Type, Static } from "@fastify/type-provider-typebox";
+import { Type, Static } from "@sinclair/typebox";
 
 export const AuthResponseSchema = Type.Object({
   idToken: Type.String({

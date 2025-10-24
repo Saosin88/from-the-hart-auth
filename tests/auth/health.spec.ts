@@ -1,5 +1,6 @@
 import request from "supertest";
 import { buildApp } from "../../src/app";
+import { vi } from "vitest";
 
 const app = buildApp();
 let server: any;
@@ -15,7 +16,7 @@ afterAll(async () => {
 // Jest tests for /auth/health endpoint
 describe("/auth/health", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("should return service health status", async () => {

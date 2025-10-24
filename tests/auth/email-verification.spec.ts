@@ -1,9 +1,11 @@
 import request from "supertest";
 import { buildApp } from "../../src/app";
 import * as authService from "../../src/services/authService";
+import { vi } from "vitest";
+import type { Mock } from "vitest";
 
-jest.mock("../../src/services/authService");
-jest.mock("../../src/services/emailService");
+vi.mock("../../src/services/authService");
+vi.mock("../../src/services/emailService");
 
 const app = buildApp();
 let server: any;
@@ -19,11 +21,11 @@ afterAll(async () => {
 // Jest tests for /auth/verify-email and /auth/resend-verification endpoints
 describe("/auth/verify-email", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("should verify email with a valid token", async () => {
-    (authService.verifyEmailToken as jest.Mock).mockResolvedValue({
+    (authService.verifyEmailToken as Mock).mockResolvedValue({
       idToken: "mock-token",
     });
     const res = await request(server)
@@ -34,7 +36,7 @@ describe("/auth/verify-email", () => {
   });
 
   it("should fail with invalid or expired token", async () => {
-    (authService.verifyEmailToken as jest.Mock).mockImplementation(() => {
+    (authService.verifyEmailToken as Mock).mockImplementation(() => {
       throw new Error(
         "Failed to verify email. Please try again or request a new verification link."
       );
@@ -51,11 +53,11 @@ describe("/auth/verify-email", () => {
 
 describe("/auth/resend-verification", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("should resend verification email if not verified", async () => {
-    (authService.resendVerificationEmail as jest.Mock).mockResolvedValue(true);
+    (authService.resendVerificationEmail as Mock).mockResolvedValue(true);
     // Simulate a valid token with a valid email in the Authorization header if needed
     const res = await request(server)
       .get("/auth/resend-verification")
@@ -69,7 +71,7 @@ describe("/auth/resend-verification", () => {
   });
 
   it("should fail if user is already verified", async () => {
-    (authService.resendVerificationEmail as jest.Mock).mockResolvedValue(false);
+    (authService.resendVerificationEmail as Mock).mockResolvedValue(false);
     const res = await request(server)
       .get("/auth/resend-verification")
       .set("Authorization", "Bearer already-verified-token");

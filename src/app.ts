@@ -5,11 +5,14 @@ import { fastifyLogger } from "./config/logger";
 import authRoutes from "./routes/auth";
 import { initializeFirebaseAdmin } from "./services/firebase";
 import { initializeSmtp } from "./services/emailService";
+import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 
 export function buildApp(): FastifyInstance {
   const app = fastify({
     logger: fastifyLogger,
   });
+
+  app.withTypeProvider<TypeBoxTypeProvider>();
 
   app.register(cookie);
 

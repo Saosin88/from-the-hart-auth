@@ -1,9 +1,11 @@
 import request from "supertest";
 import { buildApp } from "../../src/app";
 import * as authService from "../../src/services/authService";
+import { vi } from "vitest";
+import type { Mock } from "vitest";
 
-jest.mock("../../src/services/authService");
-jest.mock("../../src/services/emailService");
+vi.mock("../../src/services/authService");
+vi.mock("../../src/services/emailService");
 
 const app = buildApp();
 let server: any;
@@ -18,11 +20,11 @@ afterAll(async () => {
 
 describe("/auth/register", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("should register a new user successfully", async () => {
-    (authService.registerUser as jest.Mock).mockResolvedValue({
+    (authService.registerUser as Mock).mockResolvedValue({
       idToken: "mock-token",
     });
     const res = await request(server)
@@ -33,7 +35,7 @@ describe("/auth/register", () => {
   });
 
   it("should fail if email is already in use", async () => {
-    (authService.registerUser as jest.Mock).mockImplementation(() => {
+    (authService.registerUser as Mock).mockImplementation(() => {
       const err: any = new Error("Email already in use");
       err.code = "auth/email-already-exists";
       throw err;

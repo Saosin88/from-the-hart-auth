@@ -1,9 +1,11 @@
 import request from "supertest";
 import { buildApp } from "../../src/app";
 import * as authService from "../../src/services/authService";
+import { vi } from "vitest";
+import type { Mock } from "vitest";
 
-jest.mock("../../src/services/authService");
-jest.mock("../../src/services/emailService");
+vi.mock("../../src/services/authService");
+vi.mock("../../src/services/emailService");
 
 const app = buildApp();
 let server: any;
@@ -18,11 +20,11 @@ afterAll(async () => {
 
 describe("/auth/forgot-password", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("should send a password reset email for a valid user", async () => {
-    (authService.forgotPassword as jest.Mock).mockResolvedValue(true);
+    (authService.forgotPassword as Mock).mockResolvedValue(true);
     const res = await request(server)
       .post("/auth/forgot-password")
       .send({ email: "user@example.com" });
@@ -43,13 +45,11 @@ describe("/auth/forgot-password", () => {
 
 describe("/auth/reset-password", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("should reset password with valid token and strong password", async () => {
-    (authService.verifyTokenAndUpdatePassword as jest.Mock).mockResolvedValue(
-      true
-    );
+    (authService.verifyTokenAndUpdatePassword as Mock).mockResolvedValue(true);
     const res = await request(server)
       .post("/auth/reset-password")
       .send({ token: "valid-reset-token", password: "NewStrongPass1!" });
@@ -58,9 +58,7 @@ describe("/auth/reset-password", () => {
   });
 
   it("should fail with invalid or expired token", async () => {
-    (authService.verifyTokenAndUpdatePassword as jest.Mock).mockResolvedValue(
-      false
-    );
+    (authService.verifyTokenAndUpdatePassword as Mock).mockResolvedValue(false);
     const res = await request(server)
       .post("/auth/reset-password")
       .send({ token: "invalid-token", password: "NewStrongPass1!" });
