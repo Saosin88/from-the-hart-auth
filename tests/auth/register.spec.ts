@@ -1,8 +1,7 @@
 import request from "supertest";
 import { buildApp } from "../../src/app";
 import * as authService from "../../src/services/authService";
-import { vi } from "vitest";
-import type { Mock } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi, Mock } from "vitest";
 
 vi.mock("../../src/services/authService");
 vi.mock("../../src/services/emailService");
