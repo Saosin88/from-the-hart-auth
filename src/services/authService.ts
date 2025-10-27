@@ -172,7 +172,20 @@ async function signInWithEmailPassword(
     }
   );
   if (!response.ok) {
-    const errorData = await response.json();
+    let errorData;
+    try {
+      errorData = await response.json();
+    } catch (e) {
+      errorData = { parseError: e, text: await response.text() };
+    }
+    logger.error(
+      {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+      },
+      "signInWithEmailPassword failed: error response from identitytoolkit.googleapis.com"
+    );
     const errorMessage = errorData.error?.message || response.statusText;
     let errorCode = "auth/unknown";
     if (
@@ -217,11 +230,22 @@ async function exchangeCustomTokenForIdToken(
     }
   );
   if (!response.ok) {
-    const errorData = await response.json();
+    let errorData;
+    try {
+      errorData = await response.json();
+    } catch (e) {
+      errorData = { parseError: e, text: await response.text() };
+    }
+    logger.error(
+      {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+      },
+      "exchangeCustomTokenForIdToken failed: error response from identitytoolkit.googleapis.com"
+    );
     throw new Error(
-      `Token exchange failed: ${
-        errorData.error?.message || response.statusText
-      }`
+      `Token exchange failed: ${errorData.error?.message || response.statusText}`
     );
   }
   const data = await response.json();
@@ -249,7 +273,20 @@ async function refreshIdToken(token: string): Promise<any> {
     }
   );
   if (!response.ok) {
-    const errorData = await response.json();
+    let errorData;
+    try {
+      errorData = await response.json();
+    } catch (e) {
+      errorData = { parseError: e, text: await response.text() };
+    }
+    logger.error(
+      {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+      },
+      "Token refresh failed: error response from securetoken.googleapis.com"
+    );
     throw new Error(
       `Token refresh failed: ${errorData.error?.message || response.statusText}`
     );

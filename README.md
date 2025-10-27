@@ -23,7 +23,7 @@ This service is a critical component in the From The Hart ecosystem, providing s
 - **Framework**: Fastify with TypeScript
 - **Authentication**: Firebase Authentication
 - **Email**: SMTP integration for verification and password reset emails
-- **Testing**: Jest for unit tests
+- **Testing**: Vitest for unit tests
 - **Containerization**: Docker for deployments
 - **Cloud Platform**: Google Cloud Run
 - **Infrastructure**: Terraform (managed in the `from-the-hart-infrastructure` repository)
@@ -112,7 +112,19 @@ Run tests with:
 npm test
 ```
 
-The project uses Jest for unit tests and includes coverage reporting.
+The project uses Vitest for unit tests.
+
+Watch mode:
+
+```bash
+npm run test:watch
+```
+
+Generate coverage locally:
+
+```bash
+npm run test:coverage
+```
 
 ## 📦 Deployment
 
@@ -193,7 +205,6 @@ from-the-hart-auth/
 ├── tests/                  # Test files
 │   └── routes/             # API route tests
 ├── Dockerfile              # Container build configuration
-├── jest.config.ts          # Jest testing configuration
 ├── package.json            # Project dependencies and scripts
 ├── tsconfig.json           # TypeScript configuration
 └── README.md               # Project documentation
