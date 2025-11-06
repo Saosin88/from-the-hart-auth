@@ -134,8 +134,13 @@ export const refreshUserToken = async (
 };
 
 export const verifyIdToken = async (idToken: string): Promise<boolean> => {
-  await adminAuth().verifyIdToken(idToken);
-  return true;
+  try {
+    await adminAuth().verifyIdToken(idToken);
+    return true;
+  } catch (error) {
+    logger.warn({ error }, "ID token verification failed");
+    return false;
+  }
 };
 
 export const invalidateUserTokens = async (
