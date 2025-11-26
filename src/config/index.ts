@@ -1,4 +1,4 @@
-const logLevel = process.env.LOG_LEVEL || "debug";
+const logLevel = process.env.LOG_LEVEL || "info";
 const env = process.env.NODE_ENV || "local";
 const websiteAuthBaseUrl =
   process.env.WEBSITE_AUTH_BASE_URL || "https://www.fromthehart.tech/auth";

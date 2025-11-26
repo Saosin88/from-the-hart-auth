@@ -15,6 +15,8 @@ export const initializeSmtp = () => {
   transporter.verify((error) => {
     if (error) {
       logger.error({ error }, "SMTP connection error");
+    } else {
+      logger.info({ operation: "initializeSmtp" }, "SMTP initialized successfully");
     }
   });
 };
@@ -42,6 +44,7 @@ export async function sendVerificationEmail(
       `,
       text: `Welcome to From The Hart! Please verify your email by clicking this link: ${link}`,
     });
+    logger.info({ operation: "sendVerificationEmail", email }, "Verification email sent successfully");
   } catch (error) {
     logger.error({ error, email }, "Failed to send verification email");
     throw error;
@@ -70,6 +73,7 @@ export async function sendPasswordResetEmail(
       `,
       text: `You requested to reset your password. Click this link to set a new password: ${resetLink}`,
     });
+    logger.info({ operation: "sendPasswordResetEmail", email }, "Password reset email sent successfully");
   } catch (error) {
     logger.error({ error, email }, "Failed to send password reset email");
     throw error;

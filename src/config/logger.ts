@@ -20,14 +20,14 @@ const generateRequestId = (req: any): string =>
 const loggerFactory = {
   getLogger() {
     return pino({
-      level: config.logLevel || "debug",
+      level: config.logLevel || "info",
       ...(config.env === "local" && prettyPrintConfig),
     });
   },
 
   createFastifyConfig(): FastifyLoggerOptions {
     const env = config.env || "local";
-    const level = config.logLevel || "debug";
+    const level = config.logLevel || "info";
 
     return {
       level,
@@ -38,8 +38,6 @@ const loggerFactory = {
             method: request.method,
             url: request.url,
             path: request.raw.url,
-            headers: request.headers,
-            body: request.body,
           };
         },
         res(response) {

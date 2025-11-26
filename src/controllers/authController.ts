@@ -9,7 +9,7 @@ import {
 import * as jwt from "jsonwebtoken";
 
 export const checkHealth = async (
-  request: FastifyRequest,
+  _request: FastifyRequest,
   reply: FastifyReply
 ) => {
   return reply.code(200).send({
@@ -27,8 +27,8 @@ export const register = async (
   }>,
   reply: FastifyReply
 ) => {
+  const { email, password } = request.body;
   try {
-    const { email, password } = request.body;
 
     const emailValidationResult = validateEmail(email);
     if (!emailValidationResult.isValid) {
@@ -51,7 +51,7 @@ export const register = async (
     const authResponse = await authService.registerUser(email, password);
     return reply.code(201).send({ data: authResponse });
   } catch (error) {
-    logger.error({ error }, "Registration error");
+    logger.error({ operation: "register", email, error }, "Registration error");
 
     const firebaseError = error as any;
     if (firebaseError.code) {
@@ -86,8 +86,8 @@ export const login = async (
   }>,
   reply: FastifyReply
 ) => {
+  const { email, password, returnRefreshToken = false } = request.body;
   try {
-    const { email, password, returnRefreshToken = false } = request.body;
 
     const emailValidationResult = validateEmail(email);
     if (!emailValidationResult.isValid) {
@@ -128,7 +128,7 @@ export const login = async (
 
     return reply.code(200).send({ data: authResponse });
   } catch (error) {
-    logger.error({ error }, "Login error");
+    logger.error({ operation: "login", email, error }, "Login error");
     const firebaseError = error as any;
     if (firebaseError.code) {
       switch (firebaseError.code) {
@@ -159,8 +159,8 @@ export const forgotPassword = async (
   }>,
   reply: FastifyReply
 ) => {
+  const { email } = request.body;
   try {
-    const { email } = request.body;
 
     const emailValidationResult = validateEmail(email);
     if (!emailValidationResult.isValid) {
@@ -180,7 +180,7 @@ export const forgotPassword = async (
       },
     });
   } catch (error) {
-    logger.error({ error }, "Password reset error");
+    logger.error({ operation: "forgotPassword", email, error }, "Password reset error");
     return reply.code(200).send({
       data: {
         message:
@@ -194,20 +194,21 @@ export const resendVerificationEmail = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
+  const idToken = request.headers["authorization"]?.split(" ")[1];
+
+  if (!idToken) {
+    return reply.code(400).send({
+      error: { message: "Authorization token missing" },
+    });
+  }
+
+  const decodedToken = jwt.decode(idToken) as { email?: string } | null;
+  const email =
+    decodedToken && typeof decodedToken === "object"
+      ? decodedToken.email
+      : undefined;
+
   try {
-    const idToken = request.headers["authorization"]?.split(" ")[1];
-
-    if (!idToken) {
-      return reply.code(400).send({
-        error: { message: "Authorization token missing" },
-      });
-    }
-
-    const decodedToken = jwt.decode(idToken) as { email?: string } | null;
-    const email =
-      decodedToken && typeof decodedToken === "object"
-        ? decodedToken.email
-        : undefined;
 
     if (!email) {
       return reply.code(400).send({
@@ -233,7 +234,7 @@ export const resendVerificationEmail = async (
       },
     });
   } catch (error) {
-    logger.error({ error }, "Email verification error");
+    logger.error({ operation: "resendVerificationEmail", email, error }, "Email verification error");
 
     // Don't reveal if the email exists
     return reply.code(200).send({
@@ -251,9 +252,8 @@ export const verifyEmail = async (
   }>,
   reply: FastifyReply
 ) => {
+  const { token } = request.body;
   try {
-    const { token } = request.body;
-
     if (!token) {
       return reply
         .code(400)
@@ -264,7 +264,9 @@ export const verifyEmail = async (
 
     return reply.code(201).send({ data: authResponse });
   } catch (error) {
-    logger.error({ error }, "Email verification error");
+    const decoded = jwt.decode(token) as { email?: string };
+    const email = decoded?.email;
+    logger.error({ operation: "verifyEmail", email, error }, "Email verification error");
     return reply.code(400).send({
       error: {
         message:
@@ -312,7 +314,7 @@ export const refreshToken = async (
     delete authResponse.refreshToken;
     return reply.code(200).send({ data: authResponse });
   } catch (error) {
-    logger.error({ error }, "Token refresh error");
+    logger.error({ operation: "refreshToken", error }, "Token refresh error");
 
     reply.clearCookie("refresh_token", {
       domain: ".fromthehart.tech",
@@ -349,9 +351,8 @@ export const resetPassword = async (
   }>,
   reply: FastifyReply
 ) => {
+  const { token, password } = request.body;
   try {
-    const { token, password } = request.body;
-
     if (!token) {
       return reply
         .code(400)
@@ -387,7 +388,9 @@ export const resetPassword = async (
       });
     }
   } catch (error) {
-    logger.error({ error }, "Password reset error");
+    const decoded = jwt.decode(token) as { email?: string };
+    const email = decoded?.email;
+    logger.error({ operation: "resetPassword", email, error }, "Password reset error");
     return reply.code(400).send({
       error: {
         message:
@@ -397,7 +400,7 @@ export const resetPassword = async (
   }
 };
 
-export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
+export const logout = async (_request: FastifyRequest, reply: FastifyReply) => {
   try {
     // const idToken = request.headers["authorization"]?.split(" ")[1];
 
@@ -421,7 +424,7 @@ export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
       },
     });
   } catch (error) {
-    logger.error({ error }, "Logout error");
+    logger.error({ operation: "logout", error }, "Logout error");
 
     reply.clearCookie("refresh_token", {
       domain: ".fromthehart.tech",
@@ -453,10 +456,10 @@ export const verifyAccessToken = async (
   }
   try {
     const valid = await authService.verifyIdToken(accessToken);
-    reply.header("Cache-Control", "public, max-age=600"); // Cache for 10 minutes
+    reply.header("Cache-Control", "public, max-age=600");
     return reply.code(200).send({ data: { valid } });
   } catch (error) {
-    logger.error({ error }, "Error verifying access token");
+    logger.error({ operation: "verifyAccessToken", error }, "Error verifying access token");
     return reply
       .code(500)
       .send({ error: { message: "Internal server error" } });

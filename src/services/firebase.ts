@@ -1,7 +1,6 @@
 import * as admin from "firebase-admin";
 import { logger } from "../config/logger";
 import { config } from "../config";
-import { FieldValue } from "firebase-admin/firestore";
 
 export const initializeFirebaseAdmin = (): void => {
   try {
@@ -17,6 +16,8 @@ export const initializeFirebaseAdmin = (): void => {
       admin.firestore().settings({
         databaseId: "auth",
       });
+
+      logger.info({ operation: "initializeFirebaseAdmin", projectId: config.firebaseConfig.projectId }, "Firebase initialized successfully");
     }
   } catch (error) {
     logger.error({ error }, "Failed to initialize Firebase Admin SDK");

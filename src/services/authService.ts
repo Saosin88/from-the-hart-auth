@@ -18,6 +18,7 @@ export const registerUser = async (
   const customToken = await adminAuth().createCustomToken(userRecord.uid);
   const idTokens = await exchangeCustomTokenForIdToken(customToken);
   await generateEmailVerificationLink(email, userRecord.uid);
+  logger.info({ operation: "registerUser", email, uid: userRecord.uid }, "User registered successfully");
   return {
     idToken: idTokens.idToken,
   };
@@ -30,8 +31,10 @@ export const authenticateUser = async (
 ): Promise<AuthResponse | null> => {
   const signInResult = await signInWithEmailPassword(email, password);
   if (!signInResult) {
+    logger.error({ operation: "authenticateUser", email, reason: "signInWithEmailPassword returned null" }, "User authentication failed");
     return null;
   }
+  logger.info({ operation: "authenticateUser", email }, "User authenticated successfully");
   return {
     idToken: signInResult.idToken,
     ...(returnRefreshToken ? { refreshToken: signInResult.refreshToken } : {}),
@@ -62,30 +65,36 @@ export const verifyEmailToken = async (
     throw new Error("Invalid token format");
   }
   const email = decoded.email;
-  const keyDoc = await firestore()
-    .collection("verify-email-keys")
-    .doc(email)
-    .get();
-  if (!keyDoc.exists || !keyDoc.data()?.key) {
-    throw new Error("Verification key not found");
-  }
-  const key = keyDoc.data()?.key;
-  const verifiedToken = jwt.verify(token, key) as { email: string };
-  if (verifiedToken && verifiedToken.email === email) {
-    const uid = keyDoc.data()?.uid;
-    if (!uid) {
-      throw new Error("User UID not found in verification data");
+  try {
+    const keyDoc = await firestore()
+      .collection("verify-email-keys")
+      .doc(email)
+      .get();
+    if (!keyDoc.exists || !keyDoc.data()?.key) {
+      throw new Error("Verification key not found");
     }
-    await adminAuth().updateUser(uid, { emailVerified: true });
-    await adminAuth().revokeRefreshTokens(uid);
-    const customToken = await adminAuth().createCustomToken(uid);
-    const idTokens = await exchangeCustomTokenForIdToken(customToken);
-    await keyDoc.ref.delete();
-    return {
-      idToken: idTokens.idToken,
-    };
-  } else {
-    throw new Error("Token verification failed");
+    const key = keyDoc.data()?.key;
+    const verifiedToken = jwt.verify(token, key) as { email: string };
+    if (verifiedToken && verifiedToken.email === email) {
+      const uid = keyDoc.data()?.uid;
+      if (!uid) {
+        throw new Error("User UID not found in verification data");
+      }
+      await adminAuth().updateUser(uid, { emailVerified: true });
+      await adminAuth().revokeRefreshTokens(uid);
+      const customToken = await adminAuth().createCustomToken(uid);
+      const idTokens = await exchangeCustomTokenForIdToken(customToken);
+      await keyDoc.ref.delete();
+      logger.info({ operation: "verifyEmailToken", email, uid }, "Email verified successfully");
+      return {
+        idToken: idTokens.idToken,
+      };
+    } else {
+      throw new Error("Token verification failed");
+    }
+  } catch (error) {
+    logger.error({ operation: "verifyEmailToken", email, error }, "Email verification failed");
+    throw error;
   }
 };
 
@@ -95,29 +104,39 @@ export const verifyTokenAndUpdatePassword = async (
 ): Promise<boolean> => {
   const decoded = jwt.decode(token) as { email?: string };
   if (!decoded || !decoded.email) {
+    logger.error({ operation: "verifyTokenAndUpdatePassword", reason: "invalid token format" }, "Token decode failed");
     return false;
   }
   const email = decoded.email;
-  const keyDoc = await firestore()
-    .collection("forgot-password-keys")
-    .doc(email)
-    .get();
-  if (!keyDoc.exists || !keyDoc.data()?.key) {
-    return false;
-  }
-  const key = keyDoc.data()?.key;
-  const verifiedToken = jwt.verify(token, key) as { email: string };
-  if (verifiedToken && verifiedToken.email === email) {
-    const uid = keyDoc.data()?.uid;
-    if (!uid) {
+  try {
+    const keyDoc = await firestore()
+      .collection("forgot-password-keys")
+      .doc(email)
+      .get();
+    if (!keyDoc.exists || !keyDoc.data()?.key) {
+      logger.error({ operation: "verifyTokenAndUpdatePassword", email, reason: "reset key not found" }, "Password reset key verification failed");
       return false;
     }
-    await adminAuth().updateUser(uid, { password: newPassword });
-    await adminAuth().revokeRefreshTokens(uid);
-    await keyDoc.ref.delete();
-    return true;
+    const key = keyDoc.data()?.key;
+    const verifiedToken = jwt.verify(token, key) as { email: string };
+    if (verifiedToken && verifiedToken.email === email) {
+      const uid = keyDoc.data()?.uid;
+      if (!uid) {
+        logger.error({ operation: "verifyTokenAndUpdatePassword", email, reason: "uid not found in reset data" }, "Password reset UID missing");
+        return false;
+      }
+      await adminAuth().updateUser(uid, { password: newPassword });
+      await adminAuth().revokeRefreshTokens(uid);
+      await keyDoc.ref.delete();
+      logger.info({ operation: "verifyTokenAndUpdatePassword", email, uid }, "Password reset successfully");
+      return true;
+    }
+    logger.error({ operation: "verifyTokenAndUpdatePassword", email, reason: "token verification failed" }, "Password reset token verification failed");
+    return false;
+  } catch (error) {
+    logger.error({ operation: "verifyTokenAndUpdatePassword", email, error }, "Password reset failed");
+    return false;
   }
-  return false;
 };
 
 export const refreshUserToken = async (
@@ -125,6 +144,7 @@ export const refreshUserToken = async (
 ): Promise<AuthResponse | null> => {
   const refreshedTokens = await refreshIdToken(refreshToken);
   if (!refreshedTokens) {
+    logger.error({ operation: "refreshUserToken", reason: "refreshIdToken returned null" }, "Token refresh failed");
     return null;
   }
   return {
@@ -318,12 +338,17 @@ async function generateEmailVerificationLink(
     .join("");
   const token = jwt.sign({ email }, key, { expiresIn: "24h" });
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  await firestore().collection("verify-email-keys").doc(email).set({
-    key,
-    createdAt: new Date(),
-    expiresAt,
-    uid: userUid,
-  });
+  try {
+    await firestore().collection("verify-email-keys").doc(email).set({
+      key,
+      createdAt: new Date(),
+      expiresAt,
+      uid: userUid,
+    });
+  } catch (error) {
+    logger.error({ operation: "generateEmailVerificationLink", email, error }, "Failed to store verification key");
+    throw error;
+  }
   const link = `${config.websiteAuthBaseUrl}/verify-email?token=${token}`;
   await sendVerificationEmail(email, link);
 }
@@ -342,12 +367,17 @@ async function generatePasswordResetLink(
     .join("");
   const token = jwt.sign({ email }, key, { expiresIn: "1h" });
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-  await firestore().collection("forgot-password-keys").doc(email).set({
-    key,
-    createdAt: new Date(),
-    expiresAt,
-    uid: userUid,
-  });
+  try {
+    await firestore().collection("forgot-password-keys").doc(email).set({
+      key,
+      createdAt: new Date(),
+      expiresAt,
+      uid: userUid,
+    });
+  } catch (error) {
+    logger.error({ operation: "generatePasswordResetLink", email, error }, "Failed to store password reset key");
+    throw error;
+  }
   const link = `${config.websiteAuthBaseUrl}/reset-password?token=${token}`;
   await sendPasswordResetEmail(email, link);
 }
