@@ -108,6 +108,4 @@ The process by which an existing **Principal** resets a forgotten password via a
 
 ## Flagged Ambiguities
 
-- **"user" in code vs. Principal in glossary:** The codebase uses "user" terminology but the canonical domain term is **Principal**. → See [TODO.md](../TODO.md#21-auth-service--rename-user-to-principal-throughout).
-- **`accessToken` in `/auth/verify-access-token`:** The endpoint and field use `accessToken` but the actual entity is an **ID Token**. Already flagged in gateway and website glossaries; the auth service is the origin of the misnomer. → See [TODO.md](../TODO.md#22-auth-service--rename-accesstoken-to-idtoken).
 - **`/auth/forgot-password` endpoint name:** The route matches the colloquial "forgot password" but the domain concept is **Password Reset Flow**. Low priority to rename since the URL is user-facing.

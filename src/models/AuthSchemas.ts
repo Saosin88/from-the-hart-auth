@@ -15,12 +15,12 @@ export const AuthResponseSchema = Type.Object({
 
 export type AuthResponse = Static<typeof AuthResponseSchema>;
 
-export const UserCredentialsSchema = Type.Object({
+export const PrincipalCredentialsSchema = Type.Object({
   email: Type.String({
     format: "email",
     minLength: 5,
     maxLength: 254,
-    description: "User's email address",
+    description: "Principal's email address",
     examples: ["user@example.com"],
   }),
   password: Type.String({
@@ -39,14 +39,14 @@ export const UserCredentialsSchema = Type.Object({
   ),
 });
 
-export type UserCredentials = Static<typeof UserCredentialsSchema>;
+export type PrincipalCredentials = Static<typeof PrincipalCredentialsSchema>;
 
-export const UserRegistrationSchema = Type.Object({
+export const PrincipalRegistrationSchema = Type.Object({
   email: Type.String({
     format: "email",
     minLength: 5,
     maxLength: 254,
-    description: "User's email address",
+    description: "Principal's email address",
     examples: ["newuser@example.com"],
   }),
   password: Type.String({
@@ -58,7 +58,7 @@ export const UserRegistrationSchema = Type.Object({
   }),
 });
 
-export type UserRegistration = Static<typeof UserRegistrationSchema>;
+export type PrincipalRegistration = Static<typeof PrincipalRegistrationSchema>;
 
 export const PasswordResetSchema = Type.Object({
   email: Type.String({
@@ -158,22 +158,22 @@ export const HealthCheckResponseSchema = Type.Object({
 
 export type HealthCheckResponse = Static<typeof HealthCheckResponseSchema>;
 
-export const AccessTokenSchema = Type.Object({
-  accessToken: Type.String({
-    description: "JWT access token to verify",
+export const IdTokenSchema = Type.Object({
+  idToken: Type.String({
+    description: "JWT ID token to verify",
     examples: ["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."],
   }),
 });
 
-export type AccessToken = Static<typeof AccessTokenSchema>;
+export type IdToken = Static<typeof IdTokenSchema>;
 
-export const AccessTokenVerificationResponseSchema = Type.Object({
+export const IdTokenVerificationResponseSchema = Type.Object({
   valid: Type.Boolean({
-    description: "Whether the access token is valid",
+    description: "Whether the ID token is valid",
     examples: [true, false],
   }),
 });
 
-export type AccessTokenVerificationResponse = Static<
-  typeof AccessTokenVerificationResponseSchema
+export type IdTokenVerificationResponse = Static<
+  typeof IdTokenVerificationResponseSchema
 >;

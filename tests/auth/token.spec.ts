@@ -31,7 +31,7 @@ describe("/auth/refresh-token", () => {
   });
 
   it("should refresh token with valid refresh token", async () => {
-    (authService.refreshUserToken as Mock).mockResolvedValue({
+    (authService.refreshPrincipalToken as Mock).mockResolvedValue({
       idToken: "mock-token",
       refreshToken: "mock-refresh",
     });
@@ -43,7 +43,7 @@ describe("/auth/refresh-token", () => {
   });
 
   it("should fail with invalid or expired refresh token", async () => {
-    (authService.refreshUserToken as Mock).mockResolvedValue(null);
+    (authService.refreshPrincipalToken as Mock).mockResolvedValue(null);
     const res = await request(server)
       .get("/auth/refresh-token")
       .set("Cookie", ["refresh_token=invalid-token"]);
@@ -52,37 +52,37 @@ describe("/auth/refresh-token", () => {
   });
 });
 
-describe("/auth/verify-access-token", () => {
+describe("/auth/verify-id-token", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("should verify a valid access token", async () => {
+  it("should verify a valid ID token", async () => {
     (authService.verifyIdToken as Mock).mockResolvedValue(true);
     const res = await request(server)
-      .post("/auth/verify-access-token")
-      .send({ accessToken: "valid-access-token" });
+      .post("/auth/verify-id-token")
+      .send({ idToken: "valid-id-token" });
     expect(res.status).toBe(200);
     expect(res.body.data.valid).toBe(true);
   });
 
-  it("should fail with missing access token", async () => {
+  it("should fail with missing ID token", async () => {
     const res = await request(server)
-      .post("/auth/verify-access-token")
+      .post("/auth/verify-id-token")
       .send({});
     expect(res.status).toBe(400);
     expect(res.body.message || res.body.error?.message).toMatch(
-      /access token|missing|required property/i
+      /id token|missing|required property/i
     );
   });
 
-  it("should fail with invalid access token", async () => {
+  it("should fail with invalid ID token", async () => {
     (authService.verifyIdToken as Mock).mockImplementation(() => {
       throw new Error("Invalid token");
     });
     const res = await request(server)
-      .post("/auth/verify-access-token")
-      .send({ accessToken: "invalid-token" });
+      .post("/auth/verify-id-token")
+      .send({ idToken: "invalid-token" });
     expect([400, 500]).toContain(res.status);
     expect(res.body.error.message).toMatch(/invalid|internal server error/i);
   });

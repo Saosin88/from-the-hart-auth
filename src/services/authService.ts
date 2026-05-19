@@ -5,36 +5,36 @@ import { adminAuth, firestore } from "./firebase";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./emailService";
 import * as jwt from "jsonwebtoken";
 
-export const registerUser = async (
+export const registerPrincipal = async (
   email: string,
   password: string
 ): Promise<AuthResponse> => {
-  const userRecord = await adminAuth().createUser({
+  const principalRecord = await adminAuth().createUser({
     email,
     password,
     emailVerified: false,
   });
 
-  const customToken = await adminAuth().createCustomToken(userRecord.uid);
+  const customToken = await adminAuth().createCustomToken(principalRecord.uid);
   const idTokens = await exchangeCustomTokenForIdToken(customToken);
-  await generateEmailVerificationLink(email, userRecord.uid);
-  logger.info({ operation: "registerUser", email, uid: userRecord.uid }, "User registered successfully");
+  await generateEmailVerificationLink(email, principalRecord.uid);
+  logger.info({ operation: "registerPrincipal", email, uid: principalRecord.uid }, "Principal registered successfully");
   return {
     idToken: idTokens.idToken,
   };
 };
 
-export const authenticateUser = async (
+export const authenticatePrincipal = async (
   email: string,
   password: string,
   returnRefreshToken: boolean = false
 ): Promise<AuthResponse | null> => {
   const signInResult = await signInWithEmailPassword(email, password);
   if (!signInResult) {
-    logger.error({ operation: "authenticateUser", email, reason: "signInWithEmailPassword returned null" }, "User authentication failed");
+    logger.error({ operation: "authenticatePrincipal", email, reason: "signInWithEmailPassword returned null" }, "Principal authentication failed");
     return null;
   }
-  logger.info({ operation: "authenticateUser", email }, "User authenticated successfully");
+  logger.info({ operation: "authenticatePrincipal", email }, "Principal authenticated successfully");
   return {
     idToken: signInResult.idToken,
     ...(returnRefreshToken ? { refreshToken: signInResult.refreshToken } : {}),
@@ -139,12 +139,12 @@ export const verifyTokenAndUpdatePassword = async (
   }
 };
 
-export const refreshUserToken = async (
+export const refreshPrincipalToken = async (
   refreshToken: string
 ): Promise<AuthResponse | null> => {
   const refreshedTokens = await refreshIdToken(refreshToken);
   if (!refreshedTokens) {
-    logger.error({ operation: "refreshUserToken", reason: "refreshIdToken returned null" }, "Token refresh failed");
+    logger.error({ operation: "refreshPrincipalToken", reason: "refreshIdToken returned null" }, "Token refresh failed");
     return null;
   }
   return {

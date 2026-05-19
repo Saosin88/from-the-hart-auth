@@ -10,13 +10,13 @@ A Fastify-based authentication API for From The Hart services. This API provides
 
 The From The Hart Auth API is part of a multi-cloud architecture that spans AWS, GCP, and Cloudflare. It handles all authentication-related functionality for From The Hart services, including:
 
-- User registration and login
+- Principal registration and login
 - Email verification
 - Password reset
 - Token refresh and validation
 - Integration with Firebase Authentication
 
-This service is a critical component in the From The Hart ecosystem, providing secure user authentication across the entire platform.
+This service is a critical component in the From The Hart ecosystem, providing secure authentication across the entire platform.
 
 ## 🛠️ Tech Stack
 
@@ -183,8 +183,7 @@ http://localhost:8080/auth/documentation
 from-the-hart-auth/
 ├── src/
 │   ├── app.ts              # Application setup and plugin configuration
-│   ├── lambda.ts           # Main entry point for serverless deployments
-│   ├── server.ts           # Main application entry point for traditional servers
+│   ├── server.ts           # Main application entry point
 │   ├── config/             # Application configuration
 │   │   ├── index.ts        # Configuration exports
 │   │   ├── logger.ts       # Logging setup
@@ -192,18 +191,20 @@ from-the-hart-auth/
 │   ├── controllers/        # API request handlers
 │   │   └── authController.ts
 │   ├── models/             # Data models with TypeBox schemas
-│   │   └── AuthUser.ts
+│   │   └── AuthSchemas.ts
 │   ├── routes/             # API route definitions
 │   │   └── auth.ts
-│   └── services/           # Business logic services
-│       ├── authService.ts  # Authentication logic
-│       ├── emailService.ts # Email sending functionality
-│       └── firebase.ts     # Firebase integration
+│   ├── services/           # Business logic services
+│   │   ├── authService.ts  # Authentication logic
+│   │   ├── emailService.ts # Email sending functionality
+│   │   └── firebase.ts     # Firebase integration
+│   └── utils/
+│       └── validator.ts    # Email + password validation
 ├── terraform/              # Infrastructure as Code configurations
 │   ├── dev/                # Development environment resources
 │   └── prod/               # Production environment resources
 ├── tests/                  # Test files
-│   └── routes/             # API route tests
+│   └── auth/               # API route tests
 ├── Dockerfile              # Container build configuration
 ├── package.json            # Project dependencies and scripts
 ├── tsconfig.json           # TypeScript configuration

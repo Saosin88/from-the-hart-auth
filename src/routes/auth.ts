@@ -2,8 +2,8 @@ import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import * as authController from "../controllers/authController";
 import {
   AuthResponseSchema,
-  UserRegistrationSchema,
-  UserCredentialsSchema,
+  PrincipalRegistrationSchema,
+  PrincipalCredentialsSchema,
   PasswordResetSchema,
   EmailVerificationTokenSchema,
   StandardMessageResponseSchema,
@@ -12,8 +12,8 @@ import {
   ErrorResponseSchema,
   PasswordUpdateSchema,
   LogoutSuccessResponseSchema,
-  AccessTokenSchema,
-  AccessTokenVerificationResponseSchema,
+  IdTokenSchema,
+  IdTokenVerificationResponseSchema,
 } from "../models/AuthSchemas";
 
 const authRoutes = async (
@@ -53,11 +53,11 @@ const authRoutes = async (
       summary: "User registration",
       body: {
         type: "object",
-        properties: UserRegistrationSchema.properties,
-        required: UserRegistrationSchema.required,
+        properties: PrincipalRegistrationSchema.properties,
+        required: PrincipalRegistrationSchema.required,
         content: {
           "application/json": {
-            schema: UserRegistrationSchema,
+            schema: PrincipalRegistrationSchema,
             examples: {
               RegisterRequest: {
                 summary: "Example registration request",
@@ -145,11 +145,11 @@ const authRoutes = async (
       summary: "User login",
       body: {
         type: "object",
-        properties: UserCredentialsSchema.properties,
-        required: UserCredentialsSchema.required,
+        properties: PrincipalCredentialsSchema.properties,
+        required: PrincipalCredentialsSchema.required,
         content: {
           "application/json": {
-            schema: UserCredentialsSchema,
+            schema: PrincipalCredentialsSchema,
             examples: {
               LoginRequest: {
                 summary: "Example login request",
@@ -610,22 +610,22 @@ const authRoutes = async (
     handler: authController.logout,
   });
 
-  fastify.post("/verify-access-token", {
+  fastify.post("/verify-id-token", {
     schema: {
-      description: "Verify the validity of a JWT access token.",
-      summary: "Verify access token",
+      description: "Verify the validity of a JWT ID token.",
+      summary: "Verify ID token",
       body: {
         type: "object",
-        properties: AccessTokenSchema.properties,
-        required: AccessTokenSchema.required,
+        properties: IdTokenSchema.properties,
+        required: IdTokenSchema.required,
         content: {
           "application/json": {
-            schema: AccessTokenSchema,
+            schema: IdTokenSchema,
             examples: {
-              VerifyAccessTokenRequest: {
-                summary: "Example verify access token request",
+              VerifyIdTokenRequest: {
+                summary: "Example verify ID token request",
                 value: {
-                  accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  idToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                 },
               },
             },
@@ -639,11 +639,11 @@ const authRoutes = async (
               schema: {
                 type: "object",
                 properties: {
-                  data: AccessTokenVerificationResponseSchema,
+                  data: IdTokenVerificationResponseSchema,
                 },
               },
               examples: {
-                VerifyAccessTokenSuccess: {
+                VerifyIdTokenSuccess: {
                   summary: "Token is valid",
                   value: {
                     data: { valid: true },
@@ -663,10 +663,10 @@ const authRoutes = async (
                 },
               },
               examples: {
-                VerifyAccessTokenError: {
-                  summary: "Missing or invalid access token",
+                VerifyIdTokenError: {
+                  summary: "Missing or invalid ID token",
                   value: {
-                    error: { message: "Missing or invalid access token" },
+                    error: { message: "Missing or invalid ID token" },
                   },
                 },
               },
@@ -683,7 +683,7 @@ const authRoutes = async (
                 },
               },
               examples: {
-                VerifyAccessTokenServerError: {
+                VerifyIdTokenServerError: {
                   summary: "Internal server error",
                   value: {
                     error: { message: "Internal server error" },
@@ -695,7 +695,7 @@ const authRoutes = async (
         },
       },
     },
-    handler: authController.verifyAccessToken,
+    handler: authController.verifyIdToken,
   });
 };
 

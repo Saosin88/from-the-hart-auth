@@ -23,7 +23,7 @@ describe("/auth/register", () => {
   });
 
   it("should register a new user successfully", async () => {
-    (authService.registerUser as Mock).mockResolvedValue({
+    (authService.registerPrincipal as Mock).mockResolvedValue({
       idToken: "mock-token",
     });
     const res = await request(server)
@@ -34,7 +34,7 @@ describe("/auth/register", () => {
   });
 
   it("should fail if email is already in use", async () => {
-    (authService.registerUser as Mock).mockImplementation(() => {
+    (authService.registerPrincipal as Mock).mockImplementation(() => {
       const err: any = new Error("Email already in use");
       err.code = "auth/email-already-exists";
       throw err;

@@ -22,7 +22,7 @@ describe("/auth/login", () => {
   });
 
   it("should login successfully with correct credentials", async () => {
-    (authService.authenticateUser as Mock).mockResolvedValue({
+    (authService.authenticatePrincipal as Mock).mockResolvedValue({
       idToken: "mock-token",
     });
     const res = await request(server)
@@ -33,7 +33,7 @@ describe("/auth/login", () => {
   });
 
   it("should fail with wrong password", async () => {
-    (authService.authenticateUser as Mock).mockResolvedValue(null);
+    (authService.authenticatePrincipal as Mock).mockResolvedValue(null);
     const res = await request(server)
       .post("/auth/login")
       .send({ email: "testuser@example.com", password: "WrongPassword" });
@@ -42,7 +42,7 @@ describe("/auth/login", () => {
   });
 
   it("should fail for non-existent user", async () => {
-    (authService.authenticateUser as Mock).mockResolvedValue(null);
+    (authService.authenticatePrincipal as Mock).mockResolvedValue(null);
     const res = await request(server)
       .post("/auth/login")
       .send({ email: "nouser@example.com", password: "StrongPassw0rd!" });
@@ -51,7 +51,7 @@ describe("/auth/login", () => {
   });
 
   it("should fail for disabled user", async () => {
-    (authService.authenticateUser as Mock).mockImplementation(() => {
+    (authService.authenticatePrincipal as Mock).mockImplementation(() => {
       const err: any = new Error("Account has been disabled");
       err.code = "auth/user-disabled";
       throw err;

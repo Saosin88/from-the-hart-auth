@@ -48,7 +48,7 @@ export const register = async (
       });
     }
 
-    const authResponse = await authService.registerUser(email, password);
+    const authResponse = await authService.registerPrincipal(email, password);
     return reply.code(201).send({ data: authResponse });
   } catch (error) {
     logger.error({ operation: "register", email, error }, "Registration error");
@@ -98,7 +98,7 @@ export const login = async (
       });
     }
 
-    const authResponse = await authService.authenticateUser(
+    const authResponse = await authService.authenticatePrincipal(
       email,
       password,
       returnRefreshToken
@@ -289,7 +289,7 @@ export const refreshToken = async (
         .send({ error: { message: "No refresh token provided" } });
     }
 
-    const authResponse = await authService.refreshUserToken(refreshToken);
+    const authResponse = await authService.refreshPrincipalToken(refreshToken);
 
     if (!authResponse) {
       return reply
@@ -444,22 +444,22 @@ export const logout = async (_request: FastifyRequest, reply: FastifyReply) => {
   }
 };
 
-export const verifyAccessToken = async (
-  request: FastifyRequest<{ Body: { accessToken: string } }>,
+export const verifyIdToken = async (
+  request: FastifyRequest<{ Body: { idToken: string } }>,
   reply: FastifyReply
 ) => {
-  const { accessToken } = request.body;
-  if (!accessToken) {
+  const { idToken } = request.body;
+  if (!idToken) {
     return reply
       .code(400)
-      .send({ error: { message: "Access token is required" } });
+      .send({ error: { message: "ID token is required" } });
   }
   try {
-    const valid = await authService.verifyIdToken(accessToken);
+    const valid = await authService.verifyIdToken(idToken);
     reply.header("Cache-Control", "public, max-age=600");
     return reply.code(200).send({ data: { valid } });
   } catch (error) {
-    logger.error({ operation: "verifyAccessToken", error }, "Error verifying access token");
+    logger.error({ operation: "verifyIdToken", error }, "Error verifying ID token");
     return reply
       .code(500)
       .send({ error: { message: "Internal server error" } });
