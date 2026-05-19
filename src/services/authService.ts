@@ -78,7 +78,7 @@ export const verifyEmailToken = async (
     if (verifiedToken && verifiedToken.email === email) {
       const uid = keyDoc.data()?.uid;
       if (!uid) {
-        throw new Error("User UID not found in verification data");
+        throw new Error("Principal UID not found in verification data");
       }
       await adminAuth().updateUser(uid, { emailVerified: true });
       await adminAuth().revokeRefreshTokens(uid);
