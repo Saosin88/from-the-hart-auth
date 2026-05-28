@@ -9,11 +9,12 @@
 
 ### Registration
 
-The process of creating a new **Principal**. Always triggers the **Email Verification Flow** as a side effect. Distinct from **Login**, which authenticates an already-registered **Principal**.
+The process of creating a new **Principal**. Always triggers the **Email Verification Flow** as a side effect. In Phase 1, also orchestrates **Identity** creation: after creating the Firebase user, calls the **Identity** service to create the profile record, sets **Custom Claims** on the Principal, then issues the ID Token.
 
 - _Avoid:_ "sign up", "create user", "create account"
-- _Relationships:_ A **Registration** creates one **Principal**.
+- _Relationships:_ A **Registration** creates one **Principal** and one **Identity**.
   Triggers one **Email Verification Flow**.
+  Calls the **Identity** service directly (not through the gateway).
 
 ### Login
 
@@ -44,7 +45,15 @@ The authenticated cryptographic entity — *who you are* after a credential exch
 - _Avoid:_ "user", "user record"
 - _Relationships:_ A **Principal** is created by **Registration**.
   Authenticated by **Login**.
-  Its identifier becomes the identity anchor for **Token Store Documents**.
+  Its identifier becomes the identity anchor for **Token Store Documents** and **Custom Claims**.
+  A **Principal** is linked to exactly one **Identity** at creation time (Phase 1). Future: may be linked to multiple **Identity** records.
+
+### Custom Claims
+
+Authorization data persisted on the **Principal** record in GCP Identity Platform via `setCustomUserClaims()`. Included automatically in all subsequent ID Tokens. Contains the `identities` map (identity_id → roles[]) and the `acting_identity` claim.
+
+- _Avoid:_ "permissions" (custom claims carry roles; permissions are implied by role)
+- _Relationships:_ Set during **Registration** and updated during role management (future). Read by the **Identity** service and **API Gateway** for authorization decisions.
 
 ---
 

@@ -24,6 +24,17 @@ const email = {
   fromAlias: process.env.EMAIL_FROM_ALIAS,
 };
 
+const identityServiceUrl = process.env.IDENTITY_SERVICE_URL || "";
+
+// Fail-fast: crash at startup if IDENTITY_SERVICE_URL is missing in non-test environments
+if (env !== "test" && !identityServiceUrl) {
+  throw new Error(
+    "IDENTITY_SERVICE_URL environment variable is required but not set. " +
+      "Set it to the Identity service's Cloud Run URL (e.g., " +
+      "https://from-the-hart-identity-<project-number>.africa-south1.run.app)."
+  );
+}
+
 export const config = {
   env,
   logLevel,
@@ -31,4 +42,5 @@ export const config = {
   firebaseConfig,
   email,
   websiteAuthBaseUrl,
+  identityServiceUrl,
 };

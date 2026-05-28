@@ -1,6 +1,8 @@
 import request from "supertest";
 import { buildApp } from "../../src/app";
 import * as authService from "../../src/services/authService";
+import { IdentityServiceError } from "../../src/services/identityService";
+import { FirebaseAuthError, AuthClientErrorCode } from "firebase-admin/auth";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi, Mock } from "vitest";
 
 vi.mock("../../src/services/authService");
@@ -35,9 +37,8 @@ describe("/auth/register", () => {
 
   it("should fail if email is already in use", async () => {
     (authService.registerPrincipal as Mock).mockImplementation(() => {
-      const err: any = new Error("Email already in use");
-      err.code = "auth/email-already-exists";
-      throw err;
+      // FirebaseAuthError runtime constructor accepts { code, message } (marked @internal)
+      throw new (FirebaseAuthError as any)(AuthClientErrorCode.EMAIL_ALREADY_EXISTS);
     });
     const res = await request(server)
       .post("/auth/register")
@@ -62,5 +63,29 @@ describe("/auth/register", () => {
     expect(res.status).toBe(400);
     // Fastify validation error message
     expect(res.body.message || res.body.error?.message).toMatch(/password/);
+  });
+
+  it("should return 500 with generic message when Identity returns 4xx error", async () => {
+    (authService.registerPrincipal as Mock).mockImplementation(() => {
+      throw new IdentityServiceError("Missing required fields", 400);
+    });
+    const res = await request(server)
+      .post("/auth/register")
+      .send({ email: "test@example.com", password: "StrongPassw0rd!" });
+    expect(res.status).toBe(500);
+    expect(res.body.error.message).toBe(
+      "Registration failed due to an internal error",
+    );
+  });
+
+  it("should return 500 with config error message when Identity returns 403", async () => {
+    (authService.registerPrincipal as Mock).mockImplementation(() => {
+      throw new IdentityServiceError("Forbidden", 403);
+    });
+    const res = await request(server)
+      .post("/auth/register")
+      .send({ email: "test@example.com", password: "StrongPassw0rd!" });
+    expect(res.status).toBe(500);
+    expect(res.body.error.message).toBe("Service configuration error");
   });
 });

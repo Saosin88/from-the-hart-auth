@@ -31,11 +31,11 @@ variable "auth_image_uri" {
 }
 
 resource "google_cloud_run_service" "from_the_hart_auth" {
-  project = data.terraform_remote_state.shared.outputs.tech_prod_project_id
+  project  = data.terraform_remote_state.shared.outputs.tech_prod_project_id
   name     = "from-the-hart-auth"
   location = "africa-south1"
 
-   metadata {
+  metadata {
     annotations = {
       "run.googleapis.com/ingress"        = "all"
       "run.googleapis.com/ingress-status" = "all"
@@ -46,6 +46,11 @@ resource "google_cloud_run_service" "from_the_hart_auth" {
     spec {
       containers {
         image = var.auth_image_uri
+
+        env {
+          name = "IDENTITY_SERVICE_URL"
+          value = "https://from-the-hart-identity-247813151171.africa-south1.run.app"
+        }
 
         ports {
           container_port = 8080
@@ -132,19 +137,19 @@ resource "google_firestore_database" "tech_auth_firestore_database" {
 }
 
 resource "google_firestore_field" "forgot_password_keys_expiresAt_ttl" {
-  project     = data.terraform_remote_state.shared.outputs.tech_prod_project_id
-  database    = google_firestore_database.tech_auth_firestore_database.name
-  collection  = "forgot-password-keys"
-  field       = "expiresAt"
+  project    = data.terraform_remote_state.shared.outputs.tech_prod_project_id
+  database   = google_firestore_database.tech_auth_firestore_database.name
+  collection = "forgot-password-keys"
+  field      = "expiresAt"
 
   ttl_config {}
 }
 
 resource "google_firestore_field" "verify_email_keys_expiresAt_ttl" {
-  project     = data.terraform_remote_state.shared.outputs.tech_prod_project_id
-  database    = google_firestore_database.tech_auth_firestore_database.name
-  collection  = "verify-email-keys"
-  field       = "expiresAt"
+  project    = data.terraform_remote_state.shared.outputs.tech_prod_project_id
+  database   = google_firestore_database.tech_auth_firestore_database.name
+  collection = "verify-email-keys"
+  field      = "expiresAt"
 
   ttl_config {}
 }

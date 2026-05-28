@@ -54,6 +54,11 @@ resource "google_cloud_run_service" "from_the_hart_auth" {
       containers {
         image = var.auth_image_uri
 
+        env {
+          name  = "IDENTITY_SERVICE_URL"
+          value = "https://from-the-hart-identity-915273311819.africa-south1.run.app"
+        }
+
         ports {
           container_port = 8080
           name           = "http1"
@@ -139,19 +144,19 @@ resource "google_firestore_database" "tech_dev_auth_firestore_database" {
 }
 
 resource "google_firestore_field" "forgot_password_keys_expiresAt_ttl" {
-  project     = data.terraform_remote_state.shared.outputs.tech_dev_project_id
-  database    = google_firestore_database.tech_dev_auth_firestore_database.name
-  collection  = "forgot-password-keys"
-  field       = "expiresAt"
+  project    = data.terraform_remote_state.shared.outputs.tech_dev_project_id
+  database   = google_firestore_database.tech_dev_auth_firestore_database.name
+  collection = "forgot-password-keys"
+  field      = "expiresAt"
 
   ttl_config {}
 }
 
 resource "google_firestore_field" "verify_email_keys_expiresAt_ttl" {
-  project     = data.terraform_remote_state.shared.outputs.tech_dev_project_id
-  database    = google_firestore_database.tech_dev_auth_firestore_database.name
-  collection  = "verify-email-keys"
-  field       = "expiresAt"
+  project    = data.terraform_remote_state.shared.outputs.tech_dev_project_id
+  database   = google_firestore_database.tech_dev_auth_firestore_database.name
+  collection = "verify-email-keys"
+  field      = "expiresAt"
 
   ttl_config {}
 }

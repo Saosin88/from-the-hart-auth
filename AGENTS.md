@@ -84,7 +84,7 @@ src/
 
 ## Key Patterns
 
-- **`buildApp()` factory** — returns FastifyInstance, no side effects, enables supertest testing
+- **`buildApp()` factory** — see master AGENTS.md "Code Patterns → Fastify Service"
 - **TypeBox everywhere** — schemas define both runtime validation AND OpenAPI docs
 - **Controllers are thin** — validate input, call service, format `{ data }`/`{ error }` response
 - **Consistent error response shape:** `{ error: { message: "..." } }`

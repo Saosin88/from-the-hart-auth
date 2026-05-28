@@ -3,25 +3,92 @@ import { logger } from "../config/logger";
 import { config } from "../config";
 import { adminAuth, firestore } from "./firebase";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./emailService";
+import { createIdentity, IdentityServiceError } from "./identityService";
+import { FirebaseAuthError } from "firebase-admin/auth";
 import * as jwt from "jsonwebtoken";
 
 export const registerPrincipal = async (
   email: string,
   password: string
 ): Promise<AuthResponse> => {
+  // Step 1: Create the Firebase Principal
   const principalRecord = await adminAuth().createUser({
     email,
     password,
     emailVerified: false,
   });
+  const uid = principalRecord.uid;
 
-  const customToken = await adminAuth().createCustomToken(principalRecord.uid);
-  const idTokens = await exchangeCustomTokenForIdToken(customToken);
-  await generateEmailVerificationLink(email, principalRecord.uid);
-  logger.info({ operation: "registerPrincipal", email, uid: principalRecord.uid }, "Principal registered successfully");
-  return {
-    idToken: idTokens.idToken,
-  };
+  try {
+    // Step 2: Create Identity record
+    const identityId = await createIdentity(email, config.identityServiceUrl);
+
+    // Step 3: Set custom claims linking Principal to Identity
+    await adminAuth().setCustomUserClaims(uid, {
+      identities: { [identityId]: ["owner"] },
+      acting_identity: identityId,
+    });
+
+    // Step 4: Issue ID Token (no claims argument — REQ-05)
+    const customToken = await adminAuth().createCustomToken(uid);
+    const idTokens = await exchangeCustomTokenForIdToken(customToken);
+
+    // Step 5: Send verification email (failure does NOT rollback — REQ-07)
+    await generateEmailVerificationLink(email, uid).catch((error) => {
+      logger.error(
+        {
+          operation: "registerPrincipal",
+          email,
+          uid,
+          error,
+        },
+        "Failed to send verification email (registration still successful)",
+      );
+    });
+
+    logger.info(
+      {
+        operation: "registerPrincipal",
+        email,
+        uid,
+        identity_id: identityId,
+      },
+      "Principal registered successfully with Identity",
+    );
+
+    return {
+      idToken: idTokens.idToken,
+    };
+  } catch (error) {
+    // Rollback: delete the Firebase Principal on any failure after createUser
+    try {
+      await adminAuth().deleteUser(uid);
+      logger.debug(
+        {
+          operation: "registerPrincipalRollback",
+          email,
+          uid,
+          result: "deleted",
+        },
+        "Rollback: Firebase Principal deleted",
+      );
+    } catch (rollbackError) {
+      logger.error(
+        {
+          operation: "registerPrincipalRollback",
+          email,
+          uid,
+          result: "failed",
+          originalError: error instanceof Error ? error.message : String(error),
+          rollbackError: rollbackError instanceof Error ? rollbackError.message : String(rollbackError),
+        },
+        "Rollback failed: could not delete Firebase Principal",
+      );
+    }
+
+    // Re-throw for controller to map to HTTP response
+    throw error;
+  }
 };
 
 export const authenticatePrincipal = async (
@@ -223,9 +290,10 @@ async function signInWithEmailPassword(
     } else if (errorMessage.includes("USER_DISABLED")) {
       errorCode = "auth/user-disabled";
     }
-    const error: any = new Error(`Authentication failed: ${errorMessage}`);
-    error.code = errorCode;
-    throw error;
+    throw new (FirebaseAuthError as any)({
+      code: errorCode.replace("auth/", ""),
+      message: errorMessage,
+    });
   }
   const data = await response.json();
   return {

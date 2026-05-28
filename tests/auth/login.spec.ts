@@ -1,6 +1,7 @@
 import request from "supertest";
 import { buildApp } from "../../src/app";
 import * as authService from "../../src/services/authService";
+import { FirebaseAuthError, AuthClientErrorCode } from "firebase-admin/auth";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi, Mock } from "vitest";
 
 vi.mock("../../src/services/authService");
@@ -52,9 +53,8 @@ describe("/auth/login", () => {
 
   it("should fail for disabled user", async () => {
     (authService.authenticatePrincipal as Mock).mockImplementation(() => {
-      const err: any = new Error("Account has been disabled");
-      err.code = "auth/user-disabled";
-      throw err;
+      // FirebaseAuthError runtime constructor accepts { code, message } (marked @internal)
+      throw new (FirebaseAuthError as any)(AuthClientErrorCode.USER_DISABLED);
     });
     const res = await request(server)
       .post("/auth/login")

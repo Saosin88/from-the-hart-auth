@@ -6,6 +6,8 @@ import {
   getPasswordErrorMessage,
   validateEmail,
 } from "../utils/validator";
+import { IdentityServiceError } from "../services/identityService";
+import { FirebaseAuthError } from "firebase-admin/auth";
 import * as jwt from "jsonwebtoken";
 
 export const checkHealth = async (
@@ -51,11 +53,30 @@ export const register = async (
     const authResponse = await authService.registerPrincipal(email, password);
     return reply.code(201).send({ data: authResponse });
   } catch (error) {
-    logger.error({ operation: "register", email, error }, "Registration error");
+    const logFields: Record<string, unknown> = { operation: "register", email, error };
 
-    const firebaseError = error as any;
-    if (firebaseError.code) {
-      switch (firebaseError.code) {
+    if (error instanceof IdentityServiceError) {
+      logFields.identityStatus = error.statusCode;
+      logFields.identityError = error.message;
+    }
+
+    logger.error(logFields, "Registration error");
+
+    if (error instanceof IdentityServiceError) {
+      switch (error.statusCode) {
+        case 403:
+          return reply
+            .code(500)
+            .send({ error: { message: "Service configuration error" } });
+        default:
+          return reply
+            .code(500)
+            .send({ error: { message: "Registration failed due to an internal error" } });
+      }
+    }
+
+    if (error instanceof FirebaseAuthError) {
+      switch (error.code) {
         case "auth/email-already-exists":
           return reply
             .code(409)
@@ -129,9 +150,9 @@ export const login = async (
     return reply.code(200).send({ data: authResponse });
   } catch (error) {
     logger.error({ operation: "login", email, error }, "Login error");
-    const firebaseError = error as any;
-    if (firebaseError.code) {
-      switch (firebaseError.code) {
+
+    if (error instanceof FirebaseAuthError) {
+      switch (error.code) {
         case "auth/user-disabled":
           return reply
             .code(403)
@@ -325,9 +346,8 @@ export const refreshToken = async (
       priority: "low",
     });
 
-    const firebaseError = error as any;
-    if (firebaseError.code) {
-      switch (firebaseError.code) {
+    if (error instanceof FirebaseAuthError) {
+      switch (error.code) {
         case "auth/user-disabled":
           return reply
             .code(403)
