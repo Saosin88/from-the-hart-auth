@@ -1,6 +1,6 @@
 import { GoogleAuth } from "google-auth-library";
 
-const IDENTITY_TIMEOUT_MS = 10_000;
+const IDENTITY_TIMEOUT_MS = 30_000;
 
 /**
  * IdentityServiceError — wraps Identity service HTTP errors for clean service-layer handling.

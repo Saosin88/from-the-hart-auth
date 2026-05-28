@@ -233,7 +233,7 @@ describe("createIdentity", () => {
     });
   });
 
-  it("should pass AbortSignal.timeout(10000) as fetch signal", async () => {
+  it("should pass AbortSignal.timeout(30000) as fetch signal", async () => {
     const timeoutSpy = vi.spyOn(AbortSignal, "timeout");
     const mockSignal = {
       aborted: false,
@@ -253,7 +253,7 @@ describe("createIdentity", () => {
     const createIdentity = await getCreateIdentity();
     await createIdentity("test@example.com", TEST_URL);
 
-    expect(timeoutSpy).toHaveBeenCalledWith(10000);
+    expect(timeoutSpy).toHaveBeenCalledWith(30000);
 
     const fetchCall = mockFetch.mock.calls[0];
     const fetchOptions = fetchCall[1];

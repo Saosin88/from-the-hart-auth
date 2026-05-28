@@ -173,7 +173,7 @@ describe("registerPrincipal", () => {
 
   it("should call deleteUser and throw when Identity times out", async () => {
     mockCreateIdentity.mockRejectedValue(
-      new IdentityServiceError("Identity service timed out after 10000ms", 0),
+      new IdentityServiceError("Identity service timed out after 30000ms", 0),
     );
 
     await expect(
