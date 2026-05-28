@@ -1,0 +1,225 @@
+# Requirements: Identity Integration (Auth → Identity Orchestration)
+
+## 1. Summary
+
+Modify the Auth service's registration flow to orchestrate Identity creation. When a new Principal registers, Auth calls the Identity service to create a corresponding Identity record, sets custom claims (`identities` and `acting_identity`) on the Principal, then issues the ID Token. If Identity creation fails, Auth rolls back the Firebase user and returns a generic error. This delivers the Phase 1 vision from the [Identity & Access Architecture](../../docs/architecture/identity-and-access.md): one Principal → one Identity, owner role, claims embedded in the JWT.
+
+**Who benefits:** New users (Principals) — registration now creates both their authentication record and their Identity profile automatically, avoiding a separate profile setup step. Downstream services (Website, Gateway) benefit from the `identities` and `acting_identity` claims in the JWT for authorization decisions.
+
+## 2. User Stories
+
+### User Story 1 — Registration Creates Identity (Priority: P1)
+
+As a new user, I want my Identity profile created automatically when I register, so that I don't need to set up my profile separately after creating an account.
+
+**Independent Test:** Can be fully tested by calling POST /auth/register with valid credentials, verifying a 201 response with an ID Token, then decoding the token to confirm `identities` and `acting_identity` claims are present. The Identity service can be mocked to return a known `identity_id`.
+
+## 3. Acceptance Criteria
+
+### Happy Path
+
+- **AC-01:** Given a valid registration request (email + password, no existing account), when Auth calls the Identity service and receives a 201 with `{ data: { identity_id } }`, then Auth sets custom claims `{ identities: { [identity_id]: ["owner"] }, acting_identity: identity_id }` on the Principal, issues an ID Token containing those claims, and returns a 201 response with `{ data: { idToken } }`.
+
+- **AC-02:** Given a valid registration request, when the Identity call succeeds, then the returned ID Token's decoded payload contains the `identities` custom claim mapping the returned `identity_id` to `["owner"]` and the `acting_identity` claim set to the returned `identity_id`.
+
+- **AC-03:** Given a valid registration request, when the Identity call succeeds, then the Auth service logs the Identity creation at INFO level including the `identity_id`.
+
+### Identity Service Failure — Generic Error Surface
+
+- **AC-04:** Given a valid registration request, when the Identity service returns a 400 status, then Auth deletes the Firebase user, logs the Identity error message at ERROR level, and returns a 500 response with `{ error: { message: "Registration failed due to an internal error" } }`.
+
+- **AC-05:** Given a valid registration request, when the Identity service returns a 403 status, then Auth deletes the Firebase user, logs the error at ERROR level, and returns a 500 response with `{ error: { message: "Service configuration error" } }`.
+
+- **AC-06:** Given a valid registration request, when the Identity service returns a 5xx status, then Auth deletes the Firebase user, logs the Identity error at ERROR level, and returns a 500 response with `{ error: { message: "Registration failed due to an internal error" } }`.
+
+- **AC-07:** Given a valid registration request, when the Identity service does not respond within 10 seconds (network timeout), then Auth deletes the Firebase user, logs the timeout at ERROR level, and returns a 500 response with `{ error: { message: "Registration failed due to an internal error" } }`.
+
+### Rollback Failure
+
+- **AC-08:** Given that Identity creation has failed and Auth attempts to roll back by deleting the Firebase user, when the `deleteUser` call also fails, then Auth logs both the original error and the rollback error at ERROR level, and returns a 500 response with `{ error: { message: "Registration failed due to an internal error" } }`.
+
+### Configuration Validation
+
+- **AC-09:** Given the Auth service is starting up, when `IDENTITY_SERVICE_URL` is not set, then the service fails to start with a clear error message.
+
+### Non-Interference
+
+- **AC-10:** Given the new Identity orchestration is in place, when any existing endpoint (`/auth/login`, `/auth/logout`, `/auth/refresh-token`, `/auth/verify-email`, `/auth/reset-password`, `/auth/forgot-password`, `/auth/resend-verification`, `/auth/verify-id-token`, `/auth/health`) is called, then behavior and response shapes are unchanged from before the integration.
+
+## 4. Functional Requirements
+
+### Registration Orchestration
+
+- **REQ-01:** After creating a Firebase user via `adminAuth().createUser()`, the system MUST call the Identity service at `POST {IDENTITY_SERVICE_URL}/identity` with the body `{ email, first_name: "", last_name: "", identity_type: "person" }`.
+
+- **REQ-02:** The system MUST authenticate to the Identity service using a Google ID token generated by `google-auth-library`'s `GoogleAuth.getIdTokenClient()`, sent in the `Authorization: Bearer <token>` header.
+
+- **REQ-03:** The system MUST NOT route the Identity service call through the API Gateway — it MUST call Identity's Cloud Run URL directly.
+
+- **REQ-04:** When the Identity service returns a 201 with `{ data: { identity_id } }`, the system MUST call `adminAuth().setCustomUserClaims(uid, { identities: { [identity_id]: ["owner"] }, acting_identity: identity_id })`.
+
+- **REQ-05:** When calling `adminAuth().createCustomToken(uid)` after setting custom claims, the system MUST NOT pass a claims argument to `createCustomToken()`.
+
+- **REQ-06:** The system MUST return only the ID Token in the registration response (`{ data: { idToken } }`). The system MUST NOT issue a refresh token during registration.
+
+- **REQ-07:** The email verification flow MUST execute after the Identity orchestration and token issuance are complete. Failure to send the verification email MUST NOT roll back the registration.
+
+### Failure Handling
+
+- **REQ-08:** When the Identity service returns a non-201 status, the system MUST attempt to delete the Firebase user via `adminAuth().deleteUser(uid)` before returning an error to the client.
+
+- **REQ-09:** The system MUST wait a maximum of 10 seconds for a response from the Identity service before timing out.
+
+- **REQ-10:** When the Identity service returns a 4xx (except 403) or 5xx, or the call times out, the system MUST return a generic 500 error to the client: `{ error: { message: "Registration failed due to an internal error" } }`.
+
+- **REQ-11:** When the Identity service returns a 403, the system MUST return a 500 error to the client: `{ error: { message: "Service configuration error" } }`.
+
+- **REQ-12:** The system MUST NOT retry the Identity service call on failure. One attempt only.
+
+### Logging
+
+- **REQ-13:** On successful Identity creation, the system MUST log at INFO level including `operation: "registerPrincipal"`, the Principal's email, uid, and the returned `identity_id`.
+
+- **REQ-14:** When the Identity service returns a 4xx, the system MUST log at ERROR level including the Identity service's error message and status code.
+
+- **REQ-15:** When the Identity service returns a 5xx, the system MUST log at ERROR level including the status code.
+
+- **REQ-16:** When the Identity service call times out, the system MUST log at ERROR level including the configured timeout duration.
+
+- **REQ-17:** After attempting rollback (`deleteUser`), the system MUST log the result at INFO level on success or ERROR level on failure.
+
+### Configuration
+
+- **REQ-18:** The system MUST read `IDENTITY_SERVICE_URL` from the environment at startup.
+
+- **REQ-19:** The system MUST fail to start if `IDENTITY_SERVICE_URL` is not configured, with an error message that clearly identifies the missing variable.
+
+- **REQ-20:** `google-auth-library` MUST be a direct dependency in `package.json` (not solely a transitive dependency of `firebase-admin`).
+
+- **REQ-21:** The Terraform configuration for the Auth service (both dev and prod) MUST set the `IDENTITY_SERVICE_URL` environment variable to the Identity service's Cloud Run URL.
+
+## 5. Non-Functional Requirements
+
+### Performance
+
+- **NFR-01:** The Identity service call timeout MUST be 10 seconds. The total registration flow (createUser → createIdentity → setCustomUserClaims → createCustomToken → token exchange → sendVerificationEmail) has no additional latency budget beyond the existing flow plus the Identity call.
+
+### Security
+
+- **NFR-02:** Auth MUST authenticate to Identity using a Google ID token generated by `google-auth-library`. The token MUST NOT be a Firebase end-user ID token.
+
+- **NFR-03:** The `IDENTITY_SERVICE_URL` MUST be set to the Identity service's Cloud Run URL directly, not the API Gateway's route.
+
+- **NFR-04:** Auth MUST NOT include Identity's internal error messages in responses to end users. All client-facing error messages for Identity failures MUST be generic (either `"Registration failed due to an internal error"` or `"Service configuration error"`).
+
+### Observability
+
+- **NFR-05:** Every Identity service call outcome MUST be logged with at minimum: `operation` identifier, email, uid, and either `identity_id` (success) or error details (failure).
+
+- **NFR-06:** Rollback operations (`deleteUser`) MUST always produce a log entry — INFO on success, ERROR on failure — regardless of the original error.
+
+### Reliability
+
+- **NFR-07:** If the Identity service is unreachable, registration MUST fail gracefully (500 + rollback) rather than leaving a partially-created Principal.
+
+- **NFR-08:** If rollback fails (orphan Firebase user), the system MUST log both errors and return 500. No automatic reconciliation is required at this scale — "log and alert" is sufficient.
+
+## 6. Key Entities
+
+### Principal (Existing, Unchanged)
+
+Represents an authenticated cryptographic entity in GCP Identity Platform. Created via `adminAuth().createUser()`.
+
+- **Key attributes:** `uid` (Firebase UID), `email`, `emailVerified`, `customClaims`
+- **New behavior:** After registration, `customClaims` now contains `identities` (map of identity_id → roles) and `acting_identity` (current identity UUID).
+
+### Identity (External, Referenced)
+
+Represents a domain profile in the Identity service's Firestore database. Created by Auth calling `POST /identity`.
+
+- **Key attributes:** `identity_id` (UUID, generated by Identity service), `email`, `first_name`, `last_name`, `identity_type`
+- **Relationship to Principal:** One-to-one in Phase 1. The link is the `identity_id` stored in the Principal's custom claims.
+
+### Registration Flow (Modified)
+
+The orchestrated process of creating a Principal, creating an Identity, setting claims, and issuing a token. Previously: `createUser → createCustomToken → exchange → sendVerificationEmail`. Now: `createUser → createIdentity → setCustomUserClaims → createCustomToken → exchange → sendVerificationEmail`.
+
+## 7. Assumptions
+
+- The Identity service is deployed, healthy, and reachable at its Cloud Run URL before Auth's registration flow is used.
+- The Identity service's IAM policy already grants `roles/run.invoker` to Auth's service account (`auth-firebase-adminsdk-fbsvc@{project}.iam.gserviceaccount.com`). This is verified in both dev and prod Terraform.
+- `google-auth-library`'s credential auto-discovery works in all environments: Cloud Run metadata server (production), Application Default Credentials (local dev), and `GOOGLE_APPLICATION_CREDENTIALS` env var (non-GCP).
+- Cloud Run URLs are stable for the lifetime of the service resource. The hard-coded `IDENTITY_SERVICE_URL` in Terraform only changes if the Identity service is explicitly destroyed and recreated.
+- The existing Auth test suite mocks `authService.registerPrincipal` at the controller level. This pattern continues — Identity HTTP calls are mocked in unit tests.
+- `setCustomUserClaims` is synchronous for a newly created user — claims are immediately available when `createCustomToken` (with no claims argument) mints the token.
+
+## 8. Constraints
+
+- **Technology:** TypeScript, Fastify v5, `firebase-admin`, `google-auth-library`.
+- **Deployment:** GCP Cloud Run, same project as Identity service.
+- **No new routes:** This integration modifies the internal flow of `POST /auth/register` only. No new API endpoints.
+- **No schema changes:** Registration request and response shapes are unchanged. `AuthResponse` (`{ idToken }`) stays the same.
+- **No Identity DELETE endpoint:** If `setCustomUserClaims` fails after Identity creation succeeds, the Identity record cannot be cleaned up. Accepted risk — Identity has no DELETE endpoint. (Deferred to future phase.)
+- **One attempt only:** No retry logic for the Identity service call.
+
+## 9. Non-Goals
+
+The following are explicitly out of scope for this specification and MUST NOT be implemented:
+
+| Feature | Why deferred |
+|---------|-------------|
+| POST /auth/switch-identity | Not needed for registration flow |
+| POST /auth/identities/{id}/roles | Not needed for registration flow |
+| GET /auth/lookup | Not needed for registration flow |
+| Multiple identities per Principal | Phase 1: exactly one |
+| DELETE /identity from Auth | No Identity DELETE endpoint exists |
+| Cache purge on Identity PATCH | Future optimization |
+| Retry logic for Identity calls | One attempt only per requirements |
+| Reconciliation for orphan Identity records | No DELETE endpoint; deferred |
+
+## 10. Edge Cases
+
+### Empty/Invalid Inputs
+
+- **EC-01:** Identity service returns a 400 with validation errors. Expected behavior: Return 500 `"Registration failed due to an internal error"`. Log the Identity error at ERROR. Rollback `deleteUser`.
+
+### Concurrent/Duplicate
+
+- **EC-02:** Two concurrent registration requests for the same email. Expected behavior: The first request to reach `createUser` succeeds; the second gets a Firebase `auth/email-already-exists` error and returns 409 `"Email already in use"` — same as before the integration. No Identity call is made for the duplicate.
+
+### Timeout
+
+- **EC-03:** Identity service does not respond within 10 seconds. Expected behavior: Return 500 `"Registration failed due to an internal error"`. Log at ERROR. Rollback `deleteUser`.
+
+### Third-Party Failure
+
+- **EC-04:** `adminAuth().createUser()` fails (network, Firebase API error). Expected behavior: No Identity call is made. Controller returns the appropriate Firebase error (409, 400, etc.) — unchanged behavior.
+
+- **EC-05:** `adminAuth().setCustomUserClaims()` fails after successful Identity creation. Expected behavior: The Identity record exists but is not linked to a Principal (no DELETE endpoint available — deferred). Return 500 `"Registration failed due to an internal error"`. Log at ERROR. Rollback `deleteUser` (Principal is removed; Identity is orphaned).
+
+- **EC-06:** `adminAuth().deleteUser()` fails during rollback. Expected behavior: Return 500 `"Registration failed due to an internal error"`. Log both original and rollback errors at ERROR. Orphan Firebase user left behind.
+
+### Unauthorized
+
+- **EC-07:** Identity returns 403 (Auth's service account not authorized). Expected behavior: Return 500 `"Service configuration error"`. Log at ERROR. Rollback `deleteUser`.
+
+## 11. Success Criteria
+
+- **SC-01:** Registration returns an ID Token containing `identities` and `acting_identity` custom claims.
+- **SC-02:** Identity service failure does not leave orphan Principal records — rollback succeeds in the common case.
+- **SC-03:** All existing tests continue to pass without modification (except register.spec.ts which is updated to mock the new Identity call).
+- **SC-04:** New tests cover: happy path (claims present), Identity failure with rollback, Identity timeout, 403 config error, rollback failure.
+- **SC-05:** Configuration failure on missing `IDENTITY_SERVICE_URL` prevents service startup.
+
+## 12. Glossary
+
+| Term | Definition |
+|------|-----------|
+| **Principal** | The authenticated cryptographic entity (Firebase user). Created during registration. |
+| **Identity** | A domain profile stored in the Identity service. Has no credentials. Linked to a Principal via custom claims. |
+| **Identity Service** | The `from-the-hart-identity` Cloud Run service. Exposes `POST /identity` for creation. |
+| **Custom Claims** | Authorization data persisted on the Principal record via `setCustomUserClaims()`. Contains `identities` (identity_id → roles[]) and `acting_identity`. |
+| **Acting Identity** | The specific Identity a Principal is operating as for the current session. Set in custom claims. |
+| **Google ID Token** | A platform-level token generated by `google-auth-library` for service-to-service auth. Not an end-user token. |
+| **Rollback** | Deleting the Firebase user (`deleteUser`) when Identity creation fails, to prevent orphan Principal records. |
+| **Hairpin Routing** | Anti-pattern where internal service-to-service calls are routed through the API gateway. Explicitly avoided. |
