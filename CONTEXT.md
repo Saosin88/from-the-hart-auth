@@ -50,10 +50,31 @@ The authenticated cryptographic entity — *who you are* after a credential exch
 
 ### Custom Claims
 
-Authorization data persisted on the **Principal** record in GCP Identity Platform via `setCustomUserClaims()`. Included automatically in all subsequent ID Tokens. Contains the `identities` map (identity_id → roles[]) and the `acting_identity` claim.
+Authorization data persisted on the **Principal** record in GCP Identity Platform via `setCustomUserClaims()`. Included automatically in all subsequent ID Tokens. Contains the `identities` map (identity_id → roles[]), the `acting_identity` claim, and optionally the `entitlements` array.
+
+Writes MUST be read-merge-write: read the current claims, merge the delta, and write back — `setCustomUserClaims()` replaces the entire claim object.
 
 - _Avoid:_ "permissions" (custom claims carry roles; permissions are implied by role)
 - _Relationships:_ Set during **Registration** and updated during role management (future). Read by the **Identity** service and **API Gateway** for authorization decisions.
+
+### Admin
+
+The platform-level **Role** meaning "administers the platform" — today: **Entitlement** grant/revoke and **Principal** lookup; future: an admin console. Distinct from the identity-scoped `owner`/`viewer` roles: it travels inside an Identity's roles array purely for JWT propagation, but authorization reads it from `identities[acting_identity]` only.
+
+- _Avoid:_ "superuser", "root" (the role confers nothing beyond the admin-gated endpoints)
+- _Relationships:_ An **Admin** is a **Principal** whose acting Identity's roles array includes `"admin"`.
+  Seeded out-of-band by the admin seed script (`scripts/seed-admin.ts`), never granted during **Registration**.
+  An admin acting as a non-admin Identity is denied (403) and must switch back.
+
+### Entitlement
+
+A Principal-level (global) capability string (e.g. `"storage"`) carried as the top-level `entitlements: string[]` **Custom Claim**. Free-form and orthogonal to Identity roles — each domain service enforces the exact string it expects; a typo'd entitlement simply matches nothing.
+
+- _Avoid:_ "permission", "feature flag" (permissions are implied by roles; entitlements are granted capabilities, not toggles)
+- _Relationships:_ An **Entitlement** belongs to exactly one **Principal**.
+  Granted and revoked by an **Admin** via `POST /auth/entitlements` and `POST /auth/entitlements/revoke`.
+  The `entitlements` claim is absent when the Principal has none (absent == empty).
+  Changes propagate on the target's next token refresh (≤ 1 hour).
 
 ---
 

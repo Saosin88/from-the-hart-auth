@@ -30,11 +30,14 @@ export function buildApp(): FastifyInstance {
 
   app.setErrorHandler((error, request, reply) => {
     if (error.validation) {
-      reply.status(400).send({
-        error: {
-          message: error.message || "Validation error",
-        },
-      });
+      // One consistent validation envelope. The only querystring-validated
+      // route is GET /auth/lookup, so a querystring failure maps to its
+      // canonical message; body failures keep Fastify's descriptive message.
+      const message =
+        error.validationContext === "querystring"
+          ? "Invalid email format"
+          : error.message || "Validation error";
+      reply.status(400).send({ error: { message } });
     } else {
       reply.status(error.statusCode || 500).send({
         error: {

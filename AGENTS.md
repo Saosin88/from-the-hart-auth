@@ -15,7 +15,7 @@
 - Refresh token rotation (httpOnly cookie)
 - ID Token verification (for API gateway)
 
-**Note:** This is the auth/authz domain. A separate **identity/user store** domain is planned for future.
+**Note:** This is the auth/authz domain. The **Identity** domain (`from-the-hart-identity`) is a separate, implemented service that Auth orchestrates during registration. See [identity-and-access.md](../../docs/architecture/identity-and-access.md) for the canonical architecture.
 
 ## Tech Stack
 

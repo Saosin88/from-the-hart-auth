@@ -14,6 +14,10 @@ import {
   LogoutSuccessResponseSchema,
   IdTokenSchema,
   IdTokenVerificationResponseSchema,
+  PrincipalLookupQuerySchema,
+  PrincipalLookupResponseSchema,
+  EntitlementRequestSchema,
+  EntitlementResponseSchema,
 } from "../models/AuthSchemas";
 
 const authRoutes = async (
@@ -696,6 +700,364 @@ const authRoutes = async (
       },
     },
     handler: authController.verifyIdToken,
+  });
+
+  fastify.get("/lookup", {
+    schema: {
+      description:
+        "Resolve a Principal's Firebase UID from their email address. Admin only: the caller's acting Identity must hold the platform-level admin role.",
+      summary: "Resolve a Principal UID by email (admin only)",
+      querystring: PrincipalLookupQuerySchema,
+      response: {
+        200: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { data: PrincipalLookupResponseSchema },
+              },
+              examples: {
+                LookupSuccess: {
+                  summary: "Principal resolved",
+                  value: { data: { principal_uid: "abc123xyz" } },
+                },
+              },
+            },
+          },
+        },
+        400: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { error: ErrorResponseSchema },
+              },
+              examples: {
+                LookupInvalidEmail: {
+                  summary: "Invalid email format",
+                  value: { error: { message: "Invalid email format" } },
+                },
+              },
+            },
+          },
+        },
+        401: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { error: ErrorResponseSchema },
+              },
+              examples: {
+                LookupUnauthorized: {
+                  summary: "Missing or invalid ID token",
+                  value: { error: { message: "Unauthorized" } },
+                },
+              },
+            },
+          },
+        },
+        403: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { error: ErrorResponseSchema },
+              },
+              examples: {
+                LookupForbidden: {
+                  summary: "Caller is not an admin",
+                  value: { error: { message: "Forbidden" } },
+                },
+              },
+            },
+          },
+        },
+        404: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { error: ErrorResponseSchema },
+              },
+              examples: {
+                LookupNotFound: {
+                  summary: "No Principal has that email",
+                  value: { error: { message: "Principal not found" } },
+                },
+              },
+            },
+          },
+        },
+        500: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { error: ErrorResponseSchema },
+              },
+              examples: {
+                LookupServerError: {
+                  summary: "Internal server error",
+                  value: { error: { message: "Internal server error" } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    handler: authController.lookupPrincipal,
+  });
+
+  fastify.post("/entitlements", {
+    schema: {
+      description:
+        "Grant a free-form entitlement to a Principal. Admin only: the caller's acting Identity must hold the platform-level admin role. Idempotent.",
+      summary: "Grant an entitlement (admin only)",
+      body: {
+        type: "object",
+        properties: EntitlementRequestSchema.properties,
+        required: EntitlementRequestSchema.required,
+        content: {
+          "application/json": {
+            schema: EntitlementRequestSchema,
+            examples: {
+              GrantEntitlementRequest: {
+                summary: "Example grant request",
+                value: { principal_uid: "abc123xyz", entitlement: "storage" },
+              },
+            },
+          },
+        },
+      },
+      response: {
+        200: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { data: EntitlementResponseSchema },
+              },
+              examples: {
+                GrantEntitlementSuccess: {
+                  summary: "Entitlement granted",
+                  value: {
+                    data: { principal_uid: "abc123xyz", entitlement: "storage" },
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { error: ErrorResponseSchema },
+              },
+              examples: {
+                GrantEntitlementBadRequest: {
+                  summary: "Invalid request body",
+                  value: { error: { message: "Invalid entitlement" } },
+                },
+              },
+            },
+          },
+        },
+        401: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { error: ErrorResponseSchema },
+              },
+              examples: {
+                GrantEntitlementUnauthorized: {
+                  summary: "Missing or invalid ID token",
+                  value: { error: { message: "Unauthorized" } },
+                },
+              },
+            },
+          },
+        },
+        403: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { error: ErrorResponseSchema },
+              },
+              examples: {
+                GrantEntitlementForbidden: {
+                  summary: "Caller is not an admin",
+                  value: { error: { message: "Forbidden" } },
+                },
+              },
+            },
+          },
+        },
+        404: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { error: ErrorResponseSchema },
+              },
+              examples: {
+                GrantEntitlementNotFound: {
+                  summary: "Target Principal not found",
+                  value: { error: { message: "Principal not found" } },
+                },
+              },
+            },
+          },
+        },
+        500: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { error: ErrorResponseSchema },
+              },
+              examples: {
+                GrantEntitlementServerError: {
+                  summary: "Internal server error",
+                  value: { error: { message: "Internal server error" } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    handler: authController.grantEntitlement,
+  });
+
+  fastify.post("/entitlements/revoke", {
+    schema: {
+      description:
+        "Revoke an entitlement from a Principal. Admin only: the caller's acting Identity must hold the platform-level admin role. Idempotent; revoking the last entitlement drops the claim entirely.",
+      summary: "Revoke an entitlement (admin only)",
+      body: {
+        type: "object",
+        properties: EntitlementRequestSchema.properties,
+        required: EntitlementRequestSchema.required,
+        content: {
+          "application/json": {
+            schema: EntitlementRequestSchema,
+            examples: {
+              RevokeEntitlementRequest: {
+                summary: "Example revoke request",
+                value: { principal_uid: "abc123xyz", entitlement: "storage" },
+              },
+            },
+          },
+        },
+      },
+      response: {
+        200: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { data: EntitlementResponseSchema },
+              },
+              examples: {
+                RevokeEntitlementSuccess: {
+                  summary: "Entitlement revoked",
+                  value: {
+                    data: { principal_uid: "abc123xyz", entitlement: "storage" },
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { error: ErrorResponseSchema },
+              },
+              examples: {
+                RevokeEntitlementBadRequest: {
+                  summary: "Invalid request body",
+                  value: { error: { message: "Invalid entitlement" } },
+                },
+              },
+            },
+          },
+        },
+        401: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { error: ErrorResponseSchema },
+              },
+              examples: {
+                RevokeEntitlementUnauthorized: {
+                  summary: "Missing or invalid ID token",
+                  value: { error: { message: "Unauthorized" } },
+                },
+              },
+            },
+          },
+        },
+        403: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { error: ErrorResponseSchema },
+              },
+              examples: {
+                RevokeEntitlementForbidden: {
+                  summary: "Caller is not an admin",
+                  value: { error: { message: "Forbidden" } },
+                },
+              },
+            },
+          },
+        },
+        404: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { error: ErrorResponseSchema },
+              },
+              examples: {
+                RevokeEntitlementNotFound: {
+                  summary: "Target Principal not found",
+                  value: { error: { message: "Principal not found" } },
+                },
+              },
+            },
+          },
+        },
+        500: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { error: ErrorResponseSchema },
+              },
+              examples: {
+                RevokeEntitlementServerError: {
+                  summary: "Internal server error",
+                  value: { error: { message: "Internal server error" } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    handler: authController.revokeEntitlement,
   });
 };
 

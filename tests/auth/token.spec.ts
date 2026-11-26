@@ -43,7 +43,9 @@ describe("/auth/refresh-token", () => {
   });
 
   it("should fail with invalid or expired refresh token", async () => {
-    (authService.refreshPrincipalToken as Mock).mockResolvedValue(null);
+    (authService.refreshPrincipalToken as Mock).mockRejectedValue(
+      new Error("Token refresh failed")
+    );
     const res = await request(server)
       .get("/auth/refresh-token")
       .set("Cookie", ["refresh_token=invalid-token"]);

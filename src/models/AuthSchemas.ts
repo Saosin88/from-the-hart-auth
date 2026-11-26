@@ -177,3 +177,58 @@ export const IdTokenVerificationResponseSchema = Type.Object({
 export type IdTokenVerificationResponse = Static<
   typeof IdTokenVerificationResponseSchema
 >;
+
+export const PrincipalLookupQuerySchema = Type.Object({
+  email: Type.String({
+    format: "email",
+    minLength: 5,
+    maxLength: 254,
+    description: "Email address of the Principal to resolve",
+    examples: ["friend@gmail.com"],
+  }),
+});
+
+export type PrincipalLookupQuery = Static<typeof PrincipalLookupQuerySchema>;
+
+export const PrincipalLookupResponseSchema = Type.Object({
+  principal_uid: Type.String({
+    minLength: 1,
+    description: "Firebase UID of the resolved Principal",
+    examples: ["abc123xyz"],
+  }),
+});
+
+export type PrincipalLookupResponse = Static<
+  typeof PrincipalLookupResponseSchema
+>;
+
+export const EntitlementRequestSchema = Type.Object({
+  principal_uid: Type.String({
+    minLength: 1,
+    description: "Firebase UID of the Principal receiving or losing the entitlement",
+    examples: ["abc123xyz"],
+  }),
+  entitlement: Type.String({
+    minLength: 1,
+    description:
+      "Free-form entitlement label (e.g. storage). Leading/trailing whitespace is trimmed before validation.",
+    examples: ["storage"],
+  }),
+});
+
+export type EntitlementRequest = Static<typeof EntitlementRequestSchema>;
+
+export const EntitlementResponseSchema = Type.Object({
+  principal_uid: Type.String({
+    minLength: 1,
+    description: "Firebase UID of the Principal whose entitlements changed",
+    examples: ["abc123xyz"],
+  }),
+  entitlement: Type.String({
+    minLength: 1,
+    description: "The entitlement that was granted or revoked",
+    examples: ["storage"],
+  }),
+});
+
+export type EntitlementResponse = Static<typeof EntitlementResponseSchema>;

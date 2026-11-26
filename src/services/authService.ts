@@ -4,6 +4,17 @@ import { config } from "../config";
 import { adminAuth, firestore } from "./firebase";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./emailService";
 import { createIdentity, IdentityServiceError } from "./identityService";
+import {
+  signInWithEmailPassword,
+  exchangeCustomTokenForIdToken,
+  refreshIdToken,
+} from "./firebaseRestService";
+import {
+  adminDenialReason,
+  assertActingIdentityInvariant,
+  mergeEntitlement,
+  type AdminRoleClaims,
+} from "../utils/claims";
 import { FirebaseAuthError } from "firebase-admin/auth";
 import * as jwt from "jsonwebtoken";
 
@@ -95,12 +106,8 @@ export const authenticatePrincipal = async (
   email: string,
   password: string,
   returnRefreshToken: boolean = false
-): Promise<AuthResponse | null> => {
+): Promise<AuthResponse> => {
   const signInResult = await signInWithEmailPassword(email, password);
-  if (!signInResult) {
-    logger.error({ operation: "authenticatePrincipal", email, reason: "signInWithEmailPassword returned null" }, "Principal authentication failed");
-    return null;
-  }
   logger.info({ operation: "authenticatePrincipal", email }, "Principal authenticated successfully");
   return {
     idToken: signInResult.idToken,
@@ -208,12 +215,8 @@ export const verifyTokenAndUpdatePassword = async (
 
 export const refreshPrincipalToken = async (
   refreshToken: string
-): Promise<AuthResponse | null> => {
+): Promise<AuthResponse> => {
   const refreshedTokens = await refreshIdToken(refreshToken);
-  if (!refreshedTokens) {
-    logger.error({ operation: "refreshPrincipalToken", reason: "refreshIdToken returned null" }, "Token refresh failed");
-    return null;
-  }
   return {
     idToken: refreshedTokens.idToken,
     refreshToken: refreshedTokens.refreshToken,
@@ -232,164 +235,15 @@ export const verifyIdToken = async (idToken: string): Promise<boolean> => {
 
 export const invalidateUserTokens = async (
   idToken: string
-): Promise<boolean> => {
+): Promise<string | null> => {
   const decodedToken = await adminAuth().verifyIdToken(idToken);
   const uid = decodedToken.uid;
   if (!uid) {
-    return false;
+    return null;
   }
   await adminAuth().revokeRefreshTokens(uid);
-  return true;
+  return uid;
 };
-
-async function signInWithEmailPassword(
-  email: string,
-  password: string
-): Promise<any> {
-  if (!config.firebaseConfig.webAPIKey) {
-    throw new Error("Firebase Web API Key is required for authentication");
-  }
-  const response = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${config.firebaseConfig.webAPIKey}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email,
-        password,
-        returnSecureToken: true,
-      }),
-    }
-  );
-  if (!response.ok) {
-    let errorData;
-    try {
-      errorData = await response.json();
-    } catch (e) {
-      errorData = { parseError: e, text: await response.text() };
-    }
-    logger.error(
-      {
-        status: response.status,
-        statusText: response.statusText,
-        errorData,
-      },
-      "signInWithEmailPassword failed: error response from identitytoolkit.googleapis.com"
-    );
-    const errorMessage = errorData.error?.message || response.statusText;
-    let errorCode = "auth/unknown";
-    if (
-      errorMessage.includes("EMAIL_NOT_FOUND") ||
-      errorMessage.includes("INVALID_EMAIL")
-    ) {
-      errorCode = "auth/user-not-found";
-    } else if (errorMessage.includes("INVALID_PASSWORD")) {
-      errorCode = "auth/wrong-password";
-    } else if (errorMessage.includes("USER_DISABLED")) {
-      errorCode = "auth/user-disabled";
-    }
-    throw new (FirebaseAuthError as any)({
-      code: errorCode.replace("auth/", ""),
-      message: errorMessage,
-    });
-  }
-  const data = await response.json();
-  return {
-    localId: data.localId,
-    idToken: data.idToken,
-    refreshToken: data.refreshToken,
-  };
-}
-
-async function exchangeCustomTokenForIdToken(
-  customToken: string
-): Promise<any> {
-  if (!config.firebaseConfig.webAPIKey) {
-    throw new Error("Firebase Web API Key is required for token exchange");
-  }
-  const response = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${config.firebaseConfig.webAPIKey}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        token: customToken,
-        returnSecureToken: true,
-      }),
-    }
-  );
-  if (!response.ok) {
-    let errorData;
-    try {
-      errorData = await response.json();
-    } catch (e) {
-      errorData = { parseError: e, text: await response.text() };
-    }
-    logger.error(
-      {
-        status: response.status,
-        statusText: response.statusText,
-        errorData,
-      },
-      "exchangeCustomTokenForIdToken failed: error response from identitytoolkit.googleapis.com"
-    );
-    throw new Error(
-      `Token exchange failed: ${errorData.error?.message || response.statusText}`
-    );
-  }
-  const data = await response.json();
-  return {
-    idToken: data.idToken,
-    refreshToken: data.refreshToken,
-  };
-}
-
-async function refreshIdToken(token: string): Promise<any> {
-  if (!config.firebaseConfig.webAPIKey) {
-    throw new Error("Firebase Web API Key is required for token refresh");
-  }
-  const response = await fetch(
-    `https://securetoken.googleapis.com/v1/token?key=${config.firebaseConfig.webAPIKey}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        grant_type: "refresh_token",
-        refresh_token: token,
-      }),
-    }
-  );
-  if (!response.ok) {
-    let errorData;
-    try {
-      errorData = await response.json();
-    } catch (e) {
-      errorData = { parseError: e, text: await response.text() };
-    }
-    logger.error(
-      {
-        status: response.status,
-        statusText: response.statusText,
-        errorData,
-      },
-      "Token refresh failed: error response from securetoken.googleapis.com"
-    );
-    throw new Error(
-      `Token refresh failed: ${errorData.error?.message || response.statusText}`
-    );
-  }
-  const data = await response.json();
-  return {
-    idToken: data.id_token,
-    refreshToken: data.refresh_token,
-  };
-}
 
 async function generateEmailVerificationLink(
   email: string,
@@ -448,4 +302,140 @@ async function generatePasswordResetLink(
   }
   const link = `${config.websiteAuthBaseUrl}/reset-password?token=${token}`;
   await sendPasswordResetEmail(email, link);
+}
+
+// ---------------------------------------------------------------------------
+// Access control: admin-gated Principal lookup and entitlement grant/revoke.
+// Lives here (not a separate service file) because it is Auth-domain logic on
+// top of adminAuth — the same category as verifyIdToken/invalidateUserTokens.
+// ---------------------------------------------------------------------------
+
+/**
+ * Thrown when a crypto-verified caller is not authorized to perform an
+ * admin-gated operation (REQ-04). Controllers map this to 403 Forbidden.
+ */
+export class AdminAuthorizationError extends Error {
+  constructor(message = "Forbidden") {
+    super(message);
+    this.name = "AdminAuthorizationError";
+  }
+}
+
+export interface AdminCaller {
+  uid: string;
+  actingIdentity: string;
+}
+
+/**
+ * Crypto-verifies the bearer token and enforces the acting-identity-scoped
+ * admin gate. Fails closed: any token that is not provably an admin acting as
+ * an admin Identity throws before any side effect.
+ *
+ * FirebaseAuthError from `verifyIdToken` propagates untouched so the controller
+ * can map it to 401 (REQ-01, design.md §9).
+ */
+export async function verifyAdminCaller(
+  idToken: string,
+  operation: string
+): Promise<AdminCaller> {
+  const decodedToken = await adminAuth().verifyIdToken(idToken);
+  const claims = decodedToken as unknown as AdminRoleClaims;
+  const reason = adminDenialReason(claims);
+
+  if (reason !== null) {
+    logger.warn(
+      { operation, uid: decodedToken.uid, reason },
+      "Admin authorization failed"
+    );
+    throw new AdminAuthorizationError("Forbidden");
+  }
+
+  return {
+    uid: decodedToken.uid,
+    actingIdentity: claims.acting_identity as string,
+  };
+}
+
+/**
+ * Shared read-merge-write path for grant and revoke (REQ-02/REQ-12/REQ-13).
+ * Never calls revokeRefreshTokens: entitlement changes propagate on the
+ * target's next token refresh (REQ-15).
+ */
+async function applyEntitlementChange(
+  idToken: string,
+  principalUid: string,
+  entitlement: string,
+  add: boolean
+): Promise<{ principal_uid: string; entitlement: string }> {
+  const operation = add ? "grantEntitlement" : "revokeEntitlement";
+  const caller = await verifyAdminCaller(idToken, operation);
+
+  const userRecord = await adminAuth().getUser(principalUid);
+  const claims: Record<string, unknown> = userRecord.customClaims ?? {};
+  const merged = mergeEntitlement(claims, entitlement, add);
+
+  // REQ-03: reject before writing when the resulting claims would break the
+  // acting_identity invariant.
+  assertActingIdentityInvariant(merged);
+
+  await adminAuth().setCustomUserClaims(principalUid, merged);
+
+  logger.info(
+    {
+      operation,
+      uid: caller.uid,
+      acting_identity: caller.actingIdentity,
+      principal_uid: principalUid,
+      entitlement,
+    },
+    add ? "Entitlement granted" : "Entitlement revoked"
+  );
+
+  return { principal_uid: principalUid, entitlement };
+}
+
+export const grantEntitlement = async (
+  idToken: string,
+  principalUid: string,
+  entitlement: string
+): Promise<{ principal_uid: string; entitlement: string }> =>
+  applyEntitlementChange(idToken, principalUid, entitlement, true);
+
+export const revokeEntitlement = async (
+  idToken: string,
+  principalUid: string,
+  entitlement: string
+): Promise<{ principal_uid: string; entitlement: string }> =>
+  applyEntitlementChange(idToken, principalUid, entitlement, false);
+
+/**
+ * Resolves a target Principal's UID from their email (REQ-07). Returns only
+ * `principal_uid` (REQ-08). A 404 is a normal outcome, so it is logged at INFO
+ * rather than ERROR (NFR-11).
+ */
+export async function lookupPrincipal(
+  idToken: string,
+  email: string
+): Promise<{ principal_uid: string }> {
+  const caller = await verifyAdminCaller(idToken, "lookupPrincipal");
+
+  try {
+    const userRecord = await adminAuth().getUserByEmail(email);
+    logger.info(
+      { operation: "lookupPrincipal", uid: caller.uid, email },
+      "Principal lookup succeeded"
+    );
+    return { principal_uid: userRecord.uid };
+  } catch (error) {
+    if (
+      error instanceof FirebaseAuthError &&
+      error.code === "auth/user-not-found"
+    ) {
+      logger.info(
+        { operation: "lookupPrincipal", uid: caller.uid, email, result: "not_found" },
+        "Principal lookup found no match"
+      );
+    }
+    throw error;
+  }
 }

@@ -34,7 +34,9 @@ describe("/auth/login", () => {
   });
 
   it("should fail with wrong password", async () => {
-    (authService.authenticatePrincipal as Mock).mockResolvedValue(null);
+    (authService.authenticatePrincipal as Mock).mockRejectedValue(
+      new (FirebaseAuthError as any)(AuthClientErrorCode.INVALID_PASSWORD)
+    );
     const res = await request(server)
       .post("/auth/login")
       .send({ email: "testuser@example.com", password: "WrongPassword" });
@@ -43,7 +45,9 @@ describe("/auth/login", () => {
   });
 
   it("should fail for non-existent user", async () => {
-    (authService.authenticatePrincipal as Mock).mockResolvedValue(null);
+    (authService.authenticatePrincipal as Mock).mockRejectedValue(
+      new (FirebaseAuthError as any)(AuthClientErrorCode.EMAIL_NOT_FOUND)
+    );
     const res = await request(server)
       .post("/auth/login")
       .send({ email: "nouser@example.com", password: "StrongPassw0rd!" });
